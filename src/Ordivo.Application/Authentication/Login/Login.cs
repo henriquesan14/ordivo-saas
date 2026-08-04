@@ -15,8 +15,6 @@ public sealed class LoginCommandHandler(
 {
     public async Task<Result<AuthDto>> Handle(LoginCommand command, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(command.Email) || string.IsNullOrWhiteSpace(command.Password))
-            return Result.Failure<AuthDto>(new Error("unauthorized", "Invalid email or password."));
         var user = await users.GetByEmailAsync(User.NormalizeEmail(command.Email), ct);
         if (user is null || !user.IsActive || !passwordHasher.Verify(user.PasswordHash, command.Password))
             return Result.Failure<AuthDto>(new Error("unauthorized", "Invalid email or password."));

@@ -17,12 +17,8 @@ public sealed class UpdateTenantCommandHandler(
         var tenant = await tenants.GetAsync(userContext.TenantId, ct);
         if (tenant is null) return Result.Failure<TenantDto>(Error.NotFound("Tenant not found."));
 
-        try
-        {
-            tenant.Rename(command.Name);
-            await unitOfWork.SaveChangesAsync(ct);
-            return Result.Success(tenant.ToDto());
-        }
-        catch (ArgumentException ex) { return Result.Failure<TenantDto>(Error.Validation(ex.Message)); }
+        tenant.Rename(command.Name);
+        await unitOfWork.SaveChangesAsync(ct);
+        return Result.Success(tenant.ToDto());
     }
 }

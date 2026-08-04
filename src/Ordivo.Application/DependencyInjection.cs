@@ -1,4 +1,6 @@
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
+using Ordivo.Application.Behaviors;
 using Ordivo.Application.Customers;
 using Ordivo.Application.Authentication;
 using Ordivo.Application.Authentication.Login;
@@ -18,22 +20,43 @@ using Ordivo.Application.Platform.Authentication;
 using Ordivo.Application.Platform.Authentication.Login;
 using Ordivo.Application.Platform.Tenants;
 using Ordivo.Application.Platform.Tenants.ListTenants;
+using Ordivo.Application.Platform.Tenants.CreateTenant;
 using Ordivo.SharedKernel.Messaging;
 namespace Ordivo.Application;
 public static class DependencyInjection
 {
-    public static IServiceCollection AddApplication(this IServiceCollection services) => services
-        .AddScoped<ICommandHandler<RegisterCommand, AuthDto>, RegisterCommandHandler>()
-        .AddScoped<ICommandHandler<LoginCommand, AuthDto>, LoginCommandHandler>()
-        .AddScoped<ICommandHandler<PlatformLoginCommand, PlatformAuthDto>, PlatformLoginCommandHandler>()
-        .AddScoped<IQueryHandler<ListPlatformTenantsQuery, IReadOnlyCollection<PlatformTenantDto>>, ListPlatformTenantsQueryHandler>()
-        .AddScoped<IQueryHandler<GetCurrentTenantQuery, TenantDto>, GetCurrentTenantQueryHandler>()
-        .AddScoped<ICommandHandler<UpdateTenantCommand, TenantDto>, UpdateTenantCommandHandler>()
-        .AddScoped<ICommandHandler<CreateCustomerCommand, CustomerDto>, CreateCustomerCommandHandler>()
-        .AddScoped<IQueryHandler<GetCustomerQuery, CustomerDto>, GetCustomerQueryHandler>()
-        .AddScoped<IQueryHandler<ListCustomersQuery, IReadOnlyCollection<CustomerDto>>, ListCustomersQueryHandler>()
-        .AddScoped<ICommandHandler<CreateServiceOrderCommand, ServiceOrderDto>, CreateServiceOrderCommandHandler>()
-        .AddScoped<IQueryHandler<GetServiceOrderQuery, ServiceOrderDto>, GetServiceOrderQueryHandler>()
-        .AddScoped<IQueryHandler<ListServiceOrdersQuery, IReadOnlyCollection<ServiceOrderDto>>, ListServiceOrdersQueryHandler>()
-        .AddScoped<ICommandHandler<ChangeServiceOrderStatusCommand, ServiceOrderDto>, ChangeServiceOrderStatusCommandHandler>();
+    public static IServiceCollection AddApplication(this IServiceCollection services)
+    {
+        services.AddValidatorsFromAssemblyContaining<RegisterCommandValidator>(ServiceLifetime.Scoped);
+
+        services.AddCommandHandler<RegisterCommand, AuthDto, RegisterCommandHandler>();
+        services.AddCommandHandler<LoginCommand, AuthDto, LoginCommandHandler>();
+        services.AddCommandHandler<PlatformLoginCommand, PlatformAuthDto, PlatformLoginCommandHandler>();
+        services.AddCommandHandler<CreatePlatformTenantCommand, CreatePlatformTenantDto, CreatePlatformTenantCommandHandler>();
+        services.AddCommandHandler<UpdateTenantCommand, TenantDto, UpdateTenantCommandHandler>();
+        services.AddCommandHandler<CreateCustomerCommand, CustomerDto, CreateCustomerCommandHandler>();
+        services.AddCommandHandler<CreateServiceOrderCommand, ServiceOrderDto, CreateServiceOrderCommandHandler>();
+        services.AddCommandHandler<ChangeServiceOrderStatusCommand, ServiceOrderDto, ChangeServiceOrderStatusCommandHandler>();
+
+        services.AddScoped<IQueryHandler<ListPlatformTenantsQuery, IReadOnlyCollection<PlatformTenantDto>>, ListPlatformTenantsQueryHandler>();
+        services.AddScoped<IQueryHandler<GetCurrentTenantQuery, TenantDto>, GetCurrentTenantQueryHandler>();
+        services.AddScoped<IQueryHandler<GetCustomerQuery, CustomerDto>, GetCustomerQueryHandler>();
+        services.AddScoped<IQueryHandler<ListCustomersQuery, IReadOnlyCollection<CustomerDto>>, ListCustomersQueryHandler>();
+        services.AddScoped<IQueryHandler<GetServiceOrderQuery, ServiceOrderDto>, GetServiceOrderQueryHandler>();
+        services.AddScoped<IQueryHandler<ListServiceOrdersQuery, IReadOnlyCollection<ServiceOrderDto>>, ListServiceOrdersQueryHandler>();
+
+        return services;
+    }
+
+    private static IServiceCollection AddCommandHandler<TCommand, TResponse, THandler>(this IServiceCollection services)
+        where TCommand : ICommand<TResponse>
+        where THandler : class, ICommandHandler<TCommand, TResponse>
+    {
+        services.AddScoped<THandler>();
+        services.AddScoped<ICommandHandler<TCommand, TResponse>>(provider =>
+            new ValidationCommandHandlerDecorator<TCommand, TResponse>(
+                provider.GetRequiredService<THandler>(),
+                provider.GetServices<IValidator<TCommand>>()));
+        return services;
+    }
 }

@@ -4,9 +4,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Ordivo.Application.Abstractions.Persistence;
 using Ordivo.Application.Abstractions.Authentication;
 using Ordivo.Infrastructure.Authentication;
+using Ordivo.Infrastructure.DomainEvents;
 using Ordivo.Infrastructure.Persistence;
 using Ordivo.Infrastructure.Persistence.Interceptors;
 using Ordivo.Infrastructure.Persistence.Repositories;
+using Ordivo.SharedKernel.Domain;
 
 namespace Ordivo.Infrastructure;
 
@@ -19,9 +21,13 @@ public static class DependencyInjection
 
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<AuditableEntityInterceptor>();
+        services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+        services.AddScoped<DispatchDomainEventsInterceptor>();
         services.AddDbContext<OrdivoDbContext>((provider, options) => options
             .UseNpgsql(connectionString)
-            .AddInterceptors(provider.GetRequiredService<AuditableEntityInterceptor>()));
+            .AddInterceptors(
+                provider.GetRequiredService<AuditableEntityInterceptor>(),
+                provider.GetRequiredService<DispatchDomainEventsInterceptor>()));
         services.AddScoped<IUnitOfWork>(provider => provider.GetRequiredService<OrdivoDbContext>());
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<IServiceOrderRepository, ServiceOrderRepository>();

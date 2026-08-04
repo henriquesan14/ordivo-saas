@@ -28,15 +28,4 @@ public sealed class OrdivoDbContext(DbContextOptions<OrdivoDbContext> options, I
         modelBuilder.Entity<Tenant>().HasQueryFilter(tenant => tenant.Id == CurrentTenantId);
     }
 
-    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        var aggregates = ChangeTracker.Entries()
-            .Select(entry => entry.Entity)
-            .OfType<AggregateRoot<Guid>>()
-            .ToArray();
-
-        var result = await base.SaveChangesAsync(cancellationToken);
-        foreach (var aggregate in aggregates) aggregate.ClearDomainEvents();
-        return result;
-    }
 }

@@ -9,15 +9,10 @@ public sealed class CreateCustomerCommandHandler(ICustomerRepository customers, 
 {
     public async Task<Result<CustomerDto>> Handle(CreateCustomerCommand command, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(command.Document)) return Result.Failure<CustomerDto>(Error.Validation("Document is required."));
         if (await customers.DocumentExistsAsync(command.Document.Trim(), ct)) return Result.Failure<CustomerDto>(Error.Conflict("A customer with this document already exists."));
-        try
-        {
-            var customer = Customer.Create(userContext.TenantId, command.Name, command.Document, command.Phone, command.Email);
-            await customers.AddAsync(customer, ct);
-            await unitOfWork.SaveChangesAsync(ct);
-            return Result.Success(customer.ToDto());
-        }
-        catch (ArgumentException ex) { return Result.Failure<CustomerDto>(Error.Validation(ex.Message)); }
+        var customer = Customer.Create(userContext.TenantId, command.Name, command.Document, command.Phone, command.Email);
+        await customers.AddAsync(customer, ct);
+        await unitOfWork.SaveChangesAsync(ct);
+        return Result.Success(customer.ToDto());
     }
 }

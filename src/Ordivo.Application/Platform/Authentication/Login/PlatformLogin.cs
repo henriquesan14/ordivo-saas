@@ -15,9 +15,6 @@ public sealed class PlatformLoginCommandHandler(
 {
     public async Task<Result<PlatformAuthDto>> Handle(PlatformLoginCommand command, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(command.Email) || string.IsNullOrWhiteSpace(command.Password))
-            return Result.Failure<PlatformAuthDto>(new Error("unauthorized", "Invalid email or password."));
-
         var user = await users.GetByEmailAsync(PlatformUser.NormalizeEmail(command.Email), ct);
         if (user is null || !user.IsActive || !passwordHasher.Verify(user.PasswordHash, command.Password))
             return Result.Failure<PlatformAuthDto>(new Error("unauthorized", "Invalid email or password."));

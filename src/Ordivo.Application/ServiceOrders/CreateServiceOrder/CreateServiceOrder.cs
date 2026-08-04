@@ -10,13 +10,9 @@ public sealed class CreateServiceOrderCommandHandler(IServiceOrderRepository ord
     public async Task<Result<ServiceOrderDto>> Handle(CreateServiceOrderCommand command, CancellationToken ct)
     {
         if (await customers.GetAsync(command.CustomerId, ct) is null) return Result.Failure<ServiceOrderDto>(Error.NotFound("Customer not found."));
-        try
-        {
-            var order = ServiceOrder.Create(userContext.TenantId, command.CustomerId, command.Title, command.Description, command.Price);
-            await orders.AddAsync(order, ct);
-            await unitOfWork.SaveChangesAsync(ct);
-            return Result.Success(order.ToDto());
-        }
-        catch (ArgumentException ex) { return Result.Failure<ServiceOrderDto>(Error.Validation(ex.Message)); }
+        var order = ServiceOrder.Create(userContext.TenantId, command.CustomerId, command.Title, command.Description, command.Price);
+        await orders.AddAsync(order, ct);
+        await unitOfWork.SaveChangesAsync(ct);
+        return Result.Success(order.ToDto());
     }
 }
