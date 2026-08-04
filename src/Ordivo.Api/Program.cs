@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Carter;
 using Ordivo.Api.Endpoints;
 using Ordivo.Api.Authentication;
+using Ordivo.Api.Common;
 using Ordivo.Application;
 using Ordivo.Infrastructure;
 using Ordivo.Infrastructure.Persistence;
@@ -15,10 +16,14 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddOpenApi();
 builder.Services.AddCarter();
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 var app = builder.Build();
+
+app.UseExceptionHandler();
 
 if (app.Configuration.GetValue<bool>("Database:ApplyMigrations"))
 {

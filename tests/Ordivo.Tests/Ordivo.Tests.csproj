@@ -19,8 +19,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Ordivo.Api\Ordivo.Api.csproj" />
     <ProjectReference Include="..\..\src\Ordivo.Domain\Ordivo.Domain.csproj" />
     <ProjectReference Include="..\..\src\Ordivo.Application\Ordivo.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
 </Project>
