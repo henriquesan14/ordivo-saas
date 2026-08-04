@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -38,6 +39,10 @@ public sealed class GlobalExceptionHandler(
                 StatusCodes.Status400BadRequest,
                 "Invalid request",
                 "The request could not be processed."),
+            AntiforgeryValidationException => (
+                StatusCodes.Status400BadRequest,
+                "Invalid CSRF token",
+                "A valid CSRF token is required for this operation."),
             UnauthorizedAccessException => (
                 StatusCodes.Status403Forbidden,
                 "Forbidden",

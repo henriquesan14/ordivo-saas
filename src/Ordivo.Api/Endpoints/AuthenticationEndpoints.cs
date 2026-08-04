@@ -1,6 +1,8 @@
 using Carter;
+using Microsoft.AspNetCore.Antiforgery;
 using Ordivo.Api.Authentication;
 using Ordivo.Api.Common;
+using Ordivo.Api.Security;
 using Ordivo.Application.Authentication;
 using Ordivo.Application.Authentication.Login;
 using Ordivo.Application.Authentication.Register;
@@ -17,19 +19,28 @@ public sealed class AuthenticationEndpoints : ICarterModule
     {
         var group = app.MapGroup("/api/auth").WithTags("Authentication");
 
+        group.MapGet("/csrf", (IAntiforgery antiforgery, HttpContext context) =>
+        {
+            var tokens = antiforgery.GetAndStoreTokens(context);
+            context.Response.Headers.CacheControl = "no-store";
+            return Results.Ok(new { token = tokens.RequestToken, headerName = tokens.HeaderName });
+        }).AllowAnonymous();
+
         group.MapPost("/register", async (
             RegisterCommand command,
             ICommandHandler<RegisterCommand, AuthDto> handler,
             HttpContext context,
             CancellationToken ct) => (await handler.Handle(command, ct)).ToAuthCookieResult(context))
-            .AllowAnonymous();
+            .AllowAnonymous()
+            .RequireRateLimiting(SecurityExtensions.AuthenticationRateLimitPolicy);
 
         group.MapPost("/login", async (
             LoginCommand command,
             ICommandHandler<LoginCommand, AuthDto> handler,
             HttpContext context,
             CancellationToken ct) => (await handler.Handle(command, ct)).ToAuthCookieResult(context))
-            .AllowAnonymous();
+            .AllowAnonymous()
+            .RequireRateLimiting(SecurityExtensions.AuthenticationRateLimitPolicy);
 
         group.MapPost("/refresh", async (
             ICommandHandler<RefreshSessionCommand, AuthDto> handler,
@@ -40,7 +51,8 @@ public sealed class AuthenticationEndpoints : ICarterModule
             if (string.IsNullOrWhiteSpace(refreshToken))
                 return Results.Unauthorized();
             return (await handler.Handle(new RefreshSessionCommand(refreshToken), ct)).ToAuthCookieResult(context);
-        }).AllowAnonymous();
+        }).AllowAnonymous()
+            .RequireRateLimiting(SecurityExtensions.RefreshRateLimitPolicy);
 
         group.MapPost("/logout", async (
             ICommandHandler<RevokeSessionCommand, bool> handler,
@@ -52,7 +64,8 @@ public sealed class AuthenticationEndpoints : ICarterModule
                 await handler.Handle(new RevokeSessionCommand(refreshToken), ct);
             context.DeleteAuthCookie();
             return Results.NoContent();
-        }).AllowAnonymous();
+        }).AllowAnonymous()
+            .RequireRateLimiting(SecurityExtensions.RefreshRateLimitPolicy);
 
         group.MapGet("/sessions", async (
             IQueryHandler<ListAuthSessionsQuery, IReadOnlyCollection<AuthSessionDto>> handler,

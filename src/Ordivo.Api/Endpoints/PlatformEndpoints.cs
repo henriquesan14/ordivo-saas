@@ -1,6 +1,7 @@
 using Carter;
 using Ordivo.Api.Authentication;
 using Ordivo.Api.Common;
+using Ordivo.Api.Security;
 using Ordivo.Application.Platform.Authentication;
 using Ordivo.Application.Platform.Authentication.Login;
 using Ordivo.Application.Platform.Authentication.Refresh;
@@ -21,7 +22,8 @@ public sealed class PlatformEndpoints : ICarterModule
             HttpContext context,
             CancellationToken ct) => (await handler.Handle(command, ct)).ToAuthCookieResult(context))
             .WithTags("Platform")
-            .AllowAnonymous();
+            .AllowAnonymous()
+            .RequireRateLimiting(SecurityExtensions.AuthenticationRateLimitPolicy);
 
         app.MapPost("/api/platform/auth/refresh", async (
             ICommandHandler<RefreshPlatformSessionCommand, PlatformAuthDto> handler,
@@ -34,7 +36,8 @@ public sealed class PlatformEndpoints : ICarterModule
             return (await handler.Handle(new RefreshPlatformSessionCommand(refreshToken), ct)).ToAuthCookieResult(context);
         })
             .WithTags("Platform")
-            .AllowAnonymous();
+            .AllowAnonymous()
+            .RequireRateLimiting(SecurityExtensions.RefreshRateLimitPolicy);
 
         app.MapGet("/api/platform/tenants", async (
             IQueryHandler<ListPlatformTenantsQuery, IReadOnlyCollection<PlatformTenantDto>> handler,

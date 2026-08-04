@@ -4,6 +4,7 @@ using Carter;
 using Ordivo.Api.Endpoints;
 using Ordivo.Api.Authentication;
 using Ordivo.Api.Common;
+using Ordivo.Api.Security;
 using Ordivo.Application;
 using Ordivo.Infrastructure;
 using Ordivo.Infrastructure.Persistence;
@@ -18,6 +19,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddCarter();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddApiSecurity(builder.Configuration, builder.Environment);
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
@@ -35,8 +37,11 @@ if (app.Configuration.GetValue<bool>("Database:ApplyMigrations"))
 await app.Services.SeedPlatformAdminAsync(app.Configuration);
 
 app.UseHttpsRedirection();
+app.UseCors(SecurityExtensions.CorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
+app.UseApiCsrfProtection();
 
 if (app.Environment.IsDevelopment())
 {

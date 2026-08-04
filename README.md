@@ -76,6 +76,31 @@ O frontend não recebe o token no JSON nem precisa manipulá-lo. O navegador env
 
 O access token expira em 15 minutos e fica no cookie `ordivo.access_token`. O refresh token expira em 30 dias e fica no cookie `ordivo.refresh_token`. Ambos são `HttpOnly`; em produção também são `Secure`. Refresh tokens são aleatórios, rotacionados a cada uso e persistidos somente como hash SHA-256 na tabela `auth_sessions`. O PlatformAdmin renova sua sessão em `POST /api/platform/auth/refresh`.
 
+## Segurança HTTP
+
+Antes de qualquer `POST`, `PUT`, `PATCH` ou `DELETE`, o frontend deve obter um token em `GET /api/auth/csrf` e enviar o valor retornado no header `X-CSRF-TOKEN`. O cookie antiforgery é mantido pelo navegador e não é acessível ao JavaScript.
+
+```javascript
+const csrfResponse = await fetch(`${apiUrl}/api/auth/csrf`, {
+  credentials: "include"
+});
+const { token } = await csrfResponse.json();
+
+await fetch(`${apiUrl}/api/platform/auth/login`, {
+  method: "POST",
+  credentials: "include",
+  headers: {
+    "Content-Type": "application/json",
+    "X-CSRF-TOKEN": token
+  },
+  body: JSON.stringify({ email, password })
+});
+```
+
+O CORS aceita somente origens configuradas em `Cors__AllowedOrigins__N` e permite credenciais; nunca combine cookies com `AllowAnyOrigin`. O Compose usa `CORS_ORIGIN=http://localhost:4200` por padrão.
+
+O rate limiting usa uma janela fixa de 60 segundos: 120 requisições globais, 5 tentativas nos endpoints de autenticação e 20 renovações de sessão, particionadas por usuário autenticado ou endereço IP. Respostas bloqueadas usam HTTP `429` e incluem o header `Retry-After`.
+
 O registro recebe `tenantName`, `name`, `email` e `password`. Ele cria o tenant e seu primeiro usuário `Owner` na mesma unidade de trabalho.
 
 ## Multi-tenancy
