@@ -1,0 +1,6 @@
+@Ordivo.Api_HostAddress = http://localhost:5037
+
+GET {{Ordivo.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

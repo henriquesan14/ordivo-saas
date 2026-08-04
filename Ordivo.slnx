@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Ordivo.Api/Ordivo.Api.csproj" />
+    <Project Path="src/Ordivo.Application/Ordivo.Application.csproj" />
+    <Project Path="src/Ordivo.Domain/Ordivo.Domain.csproj" />
+    <Project Path="src/Ordivo.Infrastructure/Ordivo.Infrastructure.csproj" />
+    <Project Path="src/Ordivo.SharedKernel/Ordivo.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Ordivo.Tests/Ordivo.Tests.csproj" />
+  </Folder>
+</Solution>

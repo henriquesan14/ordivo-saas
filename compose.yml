@@ -1,0 +1,43 @@
+name: ordivo
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ordivo}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ordivo_dev_password}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: 8080
+      ConnectionStrings__OrdivoDatabase: Host=postgres;Port=5432;Database=${POSTGRES_DB:-ordivo};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-ordivo_dev_password}
+      Database__ApplyMigrations: "true"
+      Jwt__Issuer: ${JWT_ISSUER:-Ordivo}
+      Jwt__Audience: ${JWT_AUDIENCE:-Ordivo.Web}
+      Jwt__Key: ${JWT_KEY:-development-only-docker-key-change-before-production-2026}
+      Jwt__AccessTokenExpirationMinutes: ${JWT_EXPIRATION_MINUTES:-60}
+    ports:
+      - "${API_PORT:-8080}:8080"
+
+volumes:
+  postgres-data:
