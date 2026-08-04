@@ -9,7 +9,8 @@ public static class AuthCookieExtensions
 {
     public static IResult ToAuthCookieResult(this Result<AuthDto> result, HttpContext context) =>
         result.IsSuccess
-            ? SignIn(context, result.Value.AccessToken, result.Value.ExpiresAt, new
+            ? SignIn(context, result.Value.AccessToken, result.Value.ExpiresAt,
+                result.Value.RefreshToken, result.Value.RefreshExpiresAt, new
             {
                 result.Value.UserId,
                 result.Value.TenantId,
@@ -22,7 +23,8 @@ public static class AuthCookieExtensions
 
     public static IResult ToAuthCookieResult(this Result<PlatformAuthDto> result, HttpContext context) =>
         result.IsSuccess
-            ? SignIn(context, result.Value.AccessToken, result.Value.ExpiresAt, new
+            ? SignIn(context, result.Value.AccessToken, result.Value.ExpiresAt,
+                result.Value.RefreshToken, result.Value.RefreshExpiresAt, new
             {
                 result.Value.UserId,
                 result.Value.Name,
@@ -36,23 +38,43 @@ public static class AuthCookieExtensions
     {
         var settings = context.RequestServices.GetRequiredService<IOptions<AuthCookieOptions>>().Value;
         context.Response.Cookies.Delete(settings.Name, CreateCookieOptions(settings, DateTimeOffset.UnixEpoch));
+        context.Response.Cookies.Delete(settings.RefreshName, CreateCookieOptions(settings, DateTimeOffset.UnixEpoch, "/api"));
     }
 
-    private static IResult SignIn(HttpContext context, string token, DateTimeOffset expiresAt, object response)
+    public static string? GetRefreshToken(this HttpContext context)
+    {
+        var settings = context.RequestServices.GetRequiredService<IOptions<AuthCookieOptions>>().Value;
+        return context.Request.Cookies[settings.RefreshName];
+    }
+
+    private static IResult SignIn(
+        HttpContext context,
+        string token,
+        DateTimeOffset expiresAt,
+        string refreshToken,
+        DateTimeOffset refreshExpiresAt,
+        object response)
     {
         var settings = context.RequestServices.GetRequiredService<IOptions<AuthCookieOptions>>().Value;
         context.Response.Cookies.Append(settings.Name, token, CreateCookieOptions(settings, expiresAt));
+        context.Response.Cookies.Append(
+            settings.RefreshName,
+            refreshToken,
+            CreateCookieOptions(settings, refreshExpiresAt, "/api"));
         return Results.Ok(response);
     }
 
-    private static CookieOptions CreateCookieOptions(AuthCookieOptions settings, DateTimeOffset expiresAt) => new()
+    private static CookieOptions CreateCookieOptions(
+        AuthCookieOptions settings,
+        DateTimeOffset expiresAt,
+        string path = "/") => new()
     {
         HttpOnly = true,
         Secure = settings.Secure,
         SameSite = settings.SameSite,
         Expires = expiresAt,
         IsEssential = true,
-        Path = "/"
+        Path = path
     };
 
     private static IResult ToErrorResult(Error error) => error.Code switch

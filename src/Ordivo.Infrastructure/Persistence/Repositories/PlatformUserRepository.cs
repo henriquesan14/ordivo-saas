@@ -6,6 +6,8 @@ namespace Ordivo.Infrastructure.Persistence.Repositories;
 
 internal sealed class PlatformUserRepository(OrdivoDbContext dbContext) : IPlatformUserRepository
 {
+    public Task<PlatformUser?> GetByIdAsync(Guid id, CancellationToken ct) =>
+        dbContext.PlatformUsers.SingleOrDefaultAsync(user => user.Id == id, ct);
     public async Task AddAsync(PlatformUser user, CancellationToken ct) => await dbContext.PlatformUsers.AddAsync(user, ct);
     public Task<PlatformUser?> GetByEmailAsync(string normalizedEmail, CancellationToken ct) =>
         dbContext.PlatformUsers.SingleOrDefaultAsync(user => user.Email == normalizedEmail, ct);

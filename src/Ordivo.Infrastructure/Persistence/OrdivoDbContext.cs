@@ -7,6 +7,7 @@ using Ordivo.Domain.Tenants;
 using Ordivo.Application.Abstractions.Authentication;
 using Ordivo.Domain.PlatformUsers;
 using Ordivo.SharedKernel.Domain;
+using Ordivo.Domain.Authentication;
 
 namespace Ordivo.Infrastructure.Persistence;
 
@@ -17,6 +18,7 @@ public sealed class OrdivoDbContext(DbContextOptions<OrdivoDbContext> options, I
     public DbSet<User> Users => Set<User>();
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<PlatformUser> PlatformUsers => Set<PlatformUser>();
+    public DbSet<AuthSession> AuthSessions => Set<AuthSession>();
     public Guid CurrentTenantId => userContext.IsAuthenticated ? userContext.TenantId : Guid.Empty;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

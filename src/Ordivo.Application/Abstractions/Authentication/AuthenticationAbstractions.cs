@@ -17,6 +17,14 @@ public interface IGenerateToken
 
 public sealed record AccessToken(string Token, DateTimeOffset ExpiresAt);
 
+public interface IRefreshTokenGenerator
+{
+    RefreshToken Generate();
+    string Hash(string token);
+}
+
+public sealed record RefreshToken(string Token, string Hash, DateTimeOffset ExpiresAt);
+
 public interface IUserContext
 {
     bool IsAuthenticated { get; }

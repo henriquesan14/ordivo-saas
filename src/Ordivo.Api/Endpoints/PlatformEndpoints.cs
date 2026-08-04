@@ -3,6 +3,7 @@ using Ordivo.Api.Authentication;
 using Ordivo.Api.Common;
 using Ordivo.Application.Platform.Authentication;
 using Ordivo.Application.Platform.Authentication.Login;
+using Ordivo.Application.Platform.Authentication.Refresh;
 using Ordivo.Application.Platform.Tenants;
 using Ordivo.Application.Platform.Tenants.ListTenants;
 using Ordivo.Application.Platform.Tenants.CreateTenant;
@@ -19,6 +20,19 @@ public sealed class PlatformEndpoints : ICarterModule
             ICommandHandler<PlatformLoginCommand, PlatformAuthDto> handler,
             HttpContext context,
             CancellationToken ct) => (await handler.Handle(command, ct)).ToAuthCookieResult(context))
+            .WithTags("Platform")
+            .AllowAnonymous();
+
+        app.MapPost("/api/platform/auth/refresh", async (
+            ICommandHandler<RefreshPlatformSessionCommand, PlatformAuthDto> handler,
+            HttpContext context,
+            CancellationToken ct) =>
+        {
+            var refreshToken = context.GetRefreshToken();
+            if (string.IsNullOrWhiteSpace(refreshToken))
+                return Results.Unauthorized();
+            return (await handler.Handle(new RefreshPlatformSessionCommand(refreshToken), ct)).ToAuthCookieResult(context);
+        })
             .WithTags("Platform")
             .AllowAnonymous();
 

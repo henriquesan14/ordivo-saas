@@ -35,7 +35,8 @@ services:
       Jwt__Issuer: ${JWT_ISSUER:-Ordivo}
       Jwt__Audience: ${JWT_AUDIENCE:-Ordivo.Web}
       Jwt__Key: ${JWT_KEY:-development-only-docker-key-change-before-production-2026}
-      Jwt__AccessTokenExpirationMinutes: ${JWT_EXPIRATION_MINUTES:-60}
+      Jwt__AccessTokenExpirationMinutes: ${JWT_EXPIRATION_MINUTES:-15}
+      RefreshToken__ExpirationDays: ${REFRESH_TOKEN_EXPIRATION_DAYS:-30}
       AuthCookie__Secure: "false"
       PlatformAdmin__Name: ${PLATFORM_ADMIN_NAME:-Platform Admin}
       PlatformAdmin__Email: ${PLATFORM_ADMIN_EMAIL:-admin@ordivo.local}

@@ -35,8 +35,14 @@ public static class DependencyInjection
         services.AddScoped<ITenantRepository, TenantRepository>();
         services.AddScoped<IPlatformUserRepository, PlatformUserRepository>();
         services.AddScoped<IPlatformTenantRepository, PlatformTenantRepository>();
+        services.AddScoped<IAuthSessionRepository, AuthSessionRepository>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IGenerateToken, JwtTokenGenerator>();
+        services.AddOptions<RefreshTokenOptions>()
+            .Bind(configuration.GetSection(RefreshTokenOptions.SectionName))
+            .Validate(options => options.ExpirationDays is >= 1 and <= 365, "Refresh token expiration must be between 1 and 365 days.")
+            .ValidateOnStart();
+        services.AddScoped<IRefreshTokenGenerator, RefreshTokenGenerator>();
         services.AddScoped<IUserContext, UserContext>();
         services.AddHttpContextAccessor();
         return services;

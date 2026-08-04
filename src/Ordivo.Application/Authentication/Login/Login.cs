@@ -1,6 +1,7 @@
 using Ordivo.Application.Abstractions.Authentication;
 using Ordivo.Application.Abstractions.Persistence;
 using Ordivo.Domain.Users;
+using Ordivo.Domain.Authentication;
 using Ordivo.SharedKernel.Messaging;
 using Ordivo.SharedKernel.Results;
 
@@ -11,7 +12,10 @@ public sealed record LoginCommand(string Email, string Password) : ICommand<Auth
 public sealed class LoginCommandHandler(
     IUserRepository users,
     IPasswordHasher passwordHasher,
-    IGenerateToken tokenGenerator) : ICommandHandler<LoginCommand, AuthDto>
+    IGenerateToken tokenGenerator,
+    IRefreshTokenGenerator refreshTokenGenerator,
+    IAuthSessionRepository sessions,
+    IUnitOfWork unitOfWork) : ICommandHandler<LoginCommand, AuthDto>
 {
     public async Task<Result<AuthDto>> Handle(LoginCommand command, CancellationToken ct)
     {
@@ -19,6 +23,10 @@ public sealed class LoginCommandHandler(
         if (user is null || !user.IsActive || !passwordHasher.Verify(user.PasswordHash, command.Password))
             return Result.Failure<AuthDto>(new Error("unauthorized", "Invalid email or password."));
 
-        return Result.Success(user.ToAuthDto(tokenGenerator.GenerateToken(user)));
+        var refreshToken = refreshTokenGenerator.Generate();
+        await sessions.AddAsync(AuthSession.Create(
+            user.Id, user.TenantId, AuthSubjectType.TenantUser, refreshToken.Hash, refreshToken.ExpiresAt), ct);
+        await unitOfWork.SaveChangesAsync(ct);
+        return Result.Success(user.ToAuthDto(tokenGenerator.GenerateToken(user), refreshToken));
     }
 }

@@ -6,6 +6,8 @@ namespace Ordivo.Infrastructure.Persistence.Repositories;
 
 internal sealed class UserRepository(OrdivoDbContext dbContext) : IUserRepository
 {
+    public Task<User?> GetByIdAsync(Guid id, CancellationToken ct) =>
+        dbContext.Users.IgnoreQueryFilters().SingleOrDefaultAsync(user => user.Id == id, ct);
     public async Task AddAsync(User user, CancellationToken ct) => await dbContext.Users.AddAsync(user, ct);
     public Task<User?> GetByEmailAsync(string normalizedEmail, CancellationToken ct) =>
         dbContext.Users.IgnoreQueryFilters().SingleOrDefaultAsync(user => user.Email == normalizedEmail, ct);

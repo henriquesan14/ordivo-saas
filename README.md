@@ -64,12 +64,17 @@ Jwt__Key
 
 - `POST /api/auth/register`: cria o primeiro usuário com papel `Owner`, armazena somente o hash da senha e grava o cookie de autenticação.
 - `POST /api/auth/login`: valida email e senha e grava um novo cookie de autenticação.
-- `POST /api/auth/logout`: remove o cookie de autenticação.
+- `POST /api/auth/refresh`: rotaciona o refresh token e renova o access token.
+- `POST /api/auth/logout`: revoga a sessão no banco e remove os cookies.
+- `GET /api/auth/sessions`: lista as sessões do usuário autenticado sem expor tokens ou hashes.
+- `DELETE /api/auth/sessions/{id}`: revoga uma sessão pertencente ao usuário autenticado.
 - `IGenerateToken`: abstração da Application implementada pela infraestrutura JWT.
 - `IPasswordHasher`: abstração da Application implementada com `PasswordHasher` do ASP.NET Core.
 - `IUserContext`: disponibiliza `UserId`, email, papel e estado de autenticação a partir das claims da requisição.
 
 O frontend não recebe o token no JSON nem precisa manipulá-lo. O navegador envia o cookie `HttpOnly` automaticamente nas próximas requisições. Requisições cross-origin devem incluir credenciais (`credentials: "include"` no `fetch`).
+
+O access token expira em 15 minutos e fica no cookie `ordivo.access_token`. O refresh token expira em 30 dias e fica no cookie `ordivo.refresh_token`. Ambos são `HttpOnly`; em produção também são `Secure`. Refresh tokens são aleatórios, rotacionados a cada uso e persistidos somente como hash SHA-256 na tabela `auth_sessions`. O PlatformAdmin renova sua sessão em `POST /api/platform/auth/refresh`.
 
 O registro recebe `tenantName`, `name`, `email` e `password`. Ele cria o tenant e seu primeiro usuário `Owner` na mesma unidade de trabalho.
 

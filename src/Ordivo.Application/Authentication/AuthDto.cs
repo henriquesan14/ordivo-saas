@@ -10,10 +10,13 @@ public sealed record AuthDto(
     string Email,
     UserRole Role,
     string AccessToken,
-    DateTimeOffset ExpiresAt);
+    DateTimeOffset ExpiresAt,
+    string RefreshToken,
+    DateTimeOffset RefreshExpiresAt);
 
 public static class AuthMappingExtensions
 {
-    public static AuthDto ToAuthDto(this User user, AccessToken token) =>
-        new(user.Id, user.TenantId, user.Name, user.Email, user.Role, token.Token, token.ExpiresAt);
+    public static AuthDto ToAuthDto(this User user, AccessToken token, RefreshToken refreshToken) =>
+        new(user.Id, user.TenantId, user.Name, user.Email, user.Role, token.Token, token.ExpiresAt,
+            refreshToken.Token, refreshToken.ExpiresAt);
 }

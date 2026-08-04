@@ -9,10 +9,13 @@ public sealed record PlatformAuthDto(
     string Email,
     PlatformRole Role,
     string AccessToken,
-    DateTimeOffset ExpiresAt);
+    DateTimeOffset ExpiresAt,
+    string RefreshToken,
+    DateTimeOffset RefreshExpiresAt);
 
 public static class PlatformAuthMappingExtensions
 {
-    public static PlatformAuthDto ToAuthDto(this PlatformUser user, AccessToken token) =>
-        new(user.Id, user.Name, user.Email, user.Role, token.Token, token.ExpiresAt);
+    public static PlatformAuthDto ToAuthDto(this PlatformUser user, AccessToken token, RefreshToken refreshToken) =>
+        new(user.Id, user.Name, user.Email, user.Role, token.Token, token.ExpiresAt,
+            refreshToken.Token, refreshToken.ExpiresAt);
 }

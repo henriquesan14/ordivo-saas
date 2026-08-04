@@ -3,6 +3,7 @@ using Ordivo.Domain.ServiceOrders;
 using Ordivo.Domain.Users;
 using Ordivo.Domain.Tenants;
 using Ordivo.Domain.PlatformUsers;
+using Ordivo.Domain.Authentication;
 namespace Ordivo.Application.Abstractions.Persistence;
 public interface IUnitOfWork
 {
@@ -23,6 +24,7 @@ public interface IServiceOrderRepository
 }
 public interface IUserRepository
 {
+    Task<User?> GetByIdAsync(Guid id, CancellationToken ct);
     Task<User?> GetByEmailAsync(string normalizedEmail, CancellationToken ct);
     Task<bool> EmailExistsAsync(string normalizedEmail, CancellationToken ct);
     Task AddAsync(User user, CancellationToken ct);
@@ -34,9 +36,17 @@ public interface ITenantRepository
 }
 public interface IPlatformUserRepository
 {
+    Task<PlatformUser?> GetByIdAsync(Guid id, CancellationToken ct);
     Task<PlatformUser?> GetByEmailAsync(string normalizedEmail, CancellationToken ct);
     Task<bool> EmailExistsAsync(string normalizedEmail, CancellationToken ct);
     Task AddAsync(PlatformUser user, CancellationToken ct);
+}
+public interface IAuthSessionRepository
+{
+    Task<AuthSession?> GetByTokenHashAsync(string tokenHash, CancellationToken ct);
+    Task<AuthSession?> GetByIdAsync(Guid id, CancellationToken ct);
+    Task<IReadOnlyCollection<AuthSession>> ListByUserAsync(Guid userId, AuthSubjectType subjectType, CancellationToken ct);
+    Task AddAsync(AuthSession session, CancellationToken ct);
 }
 public interface IPlatformTenantRepository
 {

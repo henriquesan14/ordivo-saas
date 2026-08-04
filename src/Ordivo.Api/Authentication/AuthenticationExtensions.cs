@@ -18,7 +18,8 @@ public static class AuthenticationExtensions
         services.AddOptions<JwtOptions>().Bind(section).ValidateDataAnnotations().ValidateOnStart();
         services.AddOptions<AuthCookieOptions>()
             .Bind(configuration.GetSection(AuthCookieOptions.SectionName))
-            .Validate(options => !string.IsNullOrWhiteSpace(options.Name), "Auth cookie name is required.")
+            .Validate(options => !string.IsNullOrWhiteSpace(options.Name) && !string.IsNullOrWhiteSpace(options.RefreshName),
+                "Access and refresh cookie names are required.")
             .ValidateOnStart();
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
