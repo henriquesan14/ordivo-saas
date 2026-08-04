@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Ordivo.Application.Abstractions.Authentication;
 using Ordivo.Domain.Users;
+using Ordivo.Domain.PlatformUsers;
 
 namespace Ordivo.Infrastructure.Authentication;
 
@@ -12,9 +13,6 @@ internal sealed class JwtTokenGenerator(IOptions<JwtOptions> options, TimeProvid
 {
     public AccessToken GenerateToken(User user)
     {
-        var jwt = options.Value;
-        var now = timeProvider.GetUtcNow();
-        var expiresAt = now.AddMinutes(jwt.AccessTokenExpirationMinutes);
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
@@ -24,6 +22,27 @@ internal sealed class JwtTokenGenerator(IOptions<JwtOptions> options, TimeProvid
             new Claim("role", user.Role.ToString()),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
+        return Generate(claims);
+    }
+
+    public AccessToken GenerateToken(PlatformUser user)
+    {
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new Claim(JwtRegisteredClaimNames.Email, user.Email),
+            new Claim("name", user.Name),
+            new Claim("platform_role", user.Role.ToString()),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        };
+        return Generate(claims);
+    }
+
+    private AccessToken Generate(IEnumerable<Claim> claims)
+    {
+        var jwt = options.Value;
+        var now = timeProvider.GetUtcNow();
+        var expiresAt = now.AddMinutes(jwt.AccessTokenExpirationMinutes);
         var credentials = new SigningCredentials(
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key)),
             SecurityAlgorithms.HmacSha256);

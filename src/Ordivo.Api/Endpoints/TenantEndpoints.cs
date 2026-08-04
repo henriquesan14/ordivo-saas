@@ -1,3 +1,4 @@
+using Carter;
 using Ordivo.Api.Common;
 using Ordivo.Application.Tenants;
 using Ordivo.Application.Tenants.GetCurrentTenant;
@@ -6,11 +7,11 @@ using Ordivo.SharedKernel.Messaging;
 
 namespace Ordivo.Api.Endpoints;
 
-public static class TenantEndpoints
+public sealed class TenantEndpoints : ICarterModule
 {
-    public static IEndpointRouteBuilder MapTenantEndpoints(this IEndpointRouteBuilder app)
+    public void AddRoutes(IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/tenant").WithTags("Tenant").RequireAuthorization();
+        var group = app.MapGroup("/api/tenant").WithTags("Tenant").RequireAuthorization("TenantUser");
 
         group.MapGet("/", async (
             IQueryHandler<GetCurrentTenantQuery, TenantDto> handler,
@@ -21,7 +22,5 @@ public static class TenantEndpoints
             ICommandHandler<UpdateTenantCommand, TenantDto> handler,
             CancellationToken ct) => (await handler.Handle(command, ct)).ToHttpResult())
             .RequireAuthorization(policy => policy.RequireRole("Owner", "Admin"));
-
-        return app;
     }
 }

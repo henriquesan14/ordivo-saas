@@ -36,6 +36,10 @@ services:
       Jwt__Audience: ${JWT_AUDIENCE:-Ordivo.Web}
       Jwt__Key: ${JWT_KEY:-development-only-docker-key-change-before-production-2026}
       Jwt__AccessTokenExpirationMinutes: ${JWT_EXPIRATION_MINUTES:-60}
+      AuthCookie__Secure: "false"
+      PlatformAdmin__Name: ${PLATFORM_ADMIN_NAME:-Platform Admin}
+      PlatformAdmin__Email: ${PLATFORM_ADMIN_EMAIL:-admin@ordivo.local}
+      PlatformAdmin__Password: ${PLATFORM_ADMIN_PASSWORD:-ChangeThisPlatformAdminPassword!2026}
     ports:
       - "${API_PORT:-8080}:8080"
 

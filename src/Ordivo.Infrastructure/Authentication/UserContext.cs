@@ -17,4 +17,5 @@ internal sealed class UserContext(IHttpContextAccessor httpContextAccessor) : IU
     public string? Name => Principal?.FindFirst("name")?.Value;
     public string? Email => Principal?.FindFirst(JwtRegisteredClaimNames.Email)?.Value;
     public string? Role => Principal?.FindFirst("role")?.Value;
+    public string? PlatformRole => Principal?.FindFirst("platform_role")?.Value;
 }

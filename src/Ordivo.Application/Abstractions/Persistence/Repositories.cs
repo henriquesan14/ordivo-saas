@@ -2,6 +2,7 @@ using Ordivo.Domain.Customers;
 using Ordivo.Domain.ServiceOrders;
 using Ordivo.Domain.Users;
 using Ordivo.Domain.Tenants;
+using Ordivo.Domain.PlatformUsers;
 namespace Ordivo.Application.Abstractions.Persistence;
 public interface IUnitOfWork
 {
@@ -30,4 +31,15 @@ public interface ITenantRepository
 {
     Task<Tenant?> GetAsync(Guid id, CancellationToken ct);
     Task AddAsync(Tenant tenant, CancellationToken ct);
+}
+public interface IPlatformUserRepository
+{
+    Task<PlatformUser?> GetByEmailAsync(string normalizedEmail, CancellationToken ct);
+    Task<bool> EmailExistsAsync(string normalizedEmail, CancellationToken ct);
+    Task AddAsync(PlatformUser user, CancellationToken ct);
+}
+public interface IPlatformTenantRepository
+{
+    Task<IReadOnlyCollection<Tenant>> ListAsync(CancellationToken ct);
+    Task<Tenant?> GetAsync(Guid id, CancellationToken ct);
 }

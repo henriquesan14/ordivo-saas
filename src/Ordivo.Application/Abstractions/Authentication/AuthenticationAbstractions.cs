@@ -1,4 +1,5 @@
 using Ordivo.Domain.Users;
+using Ordivo.Domain.PlatformUsers;
 
 namespace Ordivo.Application.Abstractions.Authentication;
 
@@ -11,6 +12,7 @@ public interface IPasswordHasher
 public interface IGenerateToken
 {
     AccessToken GenerateToken(User user);
+    AccessToken GenerateToken(PlatformUser user);
 }
 
 public sealed record AccessToken(string Token, DateTimeOffset ExpiresAt);
@@ -23,4 +25,5 @@ public interface IUserContext
     string? Name { get; }
     string? Email { get; }
     string? Role { get; }
+    string? PlatformRole { get; }
 }

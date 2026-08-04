@@ -14,6 +14,10 @@ using Ordivo.Application.ServiceOrders.ListServiceOrders;
 using Ordivo.Application.Tenants;
 using Ordivo.Application.Tenants.GetCurrentTenant;
 using Ordivo.Application.Tenants.UpdateTenant;
+using Ordivo.Application.Platform.Authentication;
+using Ordivo.Application.Platform.Authentication.Login;
+using Ordivo.Application.Platform.Tenants;
+using Ordivo.Application.Platform.Tenants.ListTenants;
 using Ordivo.SharedKernel.Messaging;
 namespace Ordivo.Application;
 public static class DependencyInjection
@@ -21,6 +25,8 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services) => services
         .AddScoped<ICommandHandler<RegisterCommand, AuthDto>, RegisterCommandHandler>()
         .AddScoped<ICommandHandler<LoginCommand, AuthDto>, LoginCommandHandler>()
+        .AddScoped<ICommandHandler<PlatformLoginCommand, PlatformAuthDto>, PlatformLoginCommandHandler>()
+        .AddScoped<IQueryHandler<ListPlatformTenantsQuery, IReadOnlyCollection<PlatformTenantDto>>, ListPlatformTenantsQueryHandler>()
         .AddScoped<IQueryHandler<GetCurrentTenantQuery, TenantDto>, GetCurrentTenantQueryHandler>()
         .AddScoped<ICommandHandler<UpdateTenantCommand, TenantDto>, UpdateTenantCommandHandler>()
         .AddScoped<ICommandHandler<CreateCustomerCommand, CustomerDto>, CreateCustomerCommandHandler>()

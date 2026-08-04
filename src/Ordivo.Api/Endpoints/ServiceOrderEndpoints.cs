@@ -1,3 +1,4 @@
+using Carter;
 using Ordivo.Api.Common;
 using Ordivo.Application.ServiceOrders;
 using Ordivo.Application.ServiceOrders.ChangeServiceOrderStatus;
@@ -7,11 +8,11 @@ using Ordivo.Application.ServiceOrders.ListServiceOrders;
 using Ordivo.Domain.ServiceOrders;
 using Ordivo.SharedKernel.Messaging;
 namespace Ordivo.Api.Endpoints;
-public static class ServiceOrderEndpoints
+public sealed class ServiceOrderEndpoints : ICarterModule
 {
-    public static IEndpointRouteBuilder MapServiceOrderEndpoints(this IEndpointRouteBuilder app)
+    public void AddRoutes(IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/service-orders").WithTags("Service orders").RequireAuthorization();
+        var group = app.MapGroup("/api/service-orders").WithTags("Service orders").RequireAuthorization("TenantUser");
         group.MapPost("/", async (CreateServiceOrderCommand command, ICommandHandler<CreateServiceOrderCommand, ServiceOrderDto> handler, CancellationToken ct) =>
         {
             var result = await handler.Handle(command, ct);
@@ -23,7 +24,6 @@ public static class ServiceOrderEndpoints
             (await handler.Handle(new ListServiceOrdersQuery(), ct)).ToHttpResult());
         group.MapPatch("/{id:guid}/status", async (Guid id, ChangeStatusRequest request, ICommandHandler<ChangeServiceOrderStatusCommand, ServiceOrderDto> handler, CancellationToken ct) =>
             (await handler.Handle(new ChangeServiceOrderStatusCommand(id, request.Status), ct)).ToHttpResult());
-        return app;
     }
     private sealed record ChangeStatusRequest(ServiceOrderStatus Status);
 }

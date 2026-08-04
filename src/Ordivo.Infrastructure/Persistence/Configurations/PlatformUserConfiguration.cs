@@ -1,0 +1,26 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Ordivo.Domain.PlatformUsers;
+
+namespace Ordivo.Infrastructure.Persistence.Configurations;
+
+internal sealed class PlatformUserConfiguration : IEntityTypeConfiguration<PlatformUser>
+{
+    public void Configure(EntityTypeBuilder<PlatformUser> builder)
+    {
+        builder.ToTable("platform_users");
+        builder.HasKey(user => user.Id);
+        builder.Property(user => user.Id).ValueGeneratedNever();
+        builder.Property(user => user.Name).HasMaxLength(120).IsRequired();
+        builder.Property(user => user.Email).HasMaxLength(254).IsRequired();
+        builder.Property(user => user.PasswordHash).HasMaxLength(500).IsRequired();
+        builder.Property(user => user.Role).HasConversion<string>().HasMaxLength(30).IsRequired();
+        builder.Property(user => user.IsActive).IsRequired();
+        builder.Property(user => user.CreatedAt).IsRequired();
+        builder.Property(user => user.UpdatedAt);
+        builder.Property(user => user.CreatedByName).HasMaxLength(120).IsRequired();
+        builder.Property(user => user.UpdatedByName).HasMaxLength(120);
+        builder.HasIndex(user => user.Email).IsUnique();
+        builder.Ignore(user => user.DomainEvents);
+    }
+}

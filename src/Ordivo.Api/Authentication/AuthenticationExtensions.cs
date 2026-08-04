@@ -16,10 +16,24 @@ public static class AuthenticationExtensions
             throw new InvalidOperationException("JWT issuer, audience and a key of at least 32 characters are required.");
 
         services.AddOptions<JwtOptions>().Bind(section).ValidateDataAnnotations().ValidateOnStart();
+        services.AddOptions<AuthCookieOptions>()
+            .Bind(configuration.GetSection(AuthCookieOptions.SectionName))
+            .Validate(options => !string.IsNullOrWhiteSpace(options.Name), "Auth cookie name is required.")
+            .ValidateOnStart();
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
                 options.MapInboundClaims = false;
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var cookie = context.HttpContext.RequestServices
+                            .GetRequiredService<Microsoft.Extensions.Options.IOptions<AuthCookieOptions>>().Value;
+                        context.Token = context.Request.Cookies[cookie.Name];
+                        return Task.CompletedTask;
+                    }
+                };
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -34,7 +48,12 @@ public static class AuthenticationExtensions
                     RoleClaimType = "role"
                 };
             });
-        services.AddAuthorization();
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy("TenantUser", policy => policy.RequireClaim("tenant_id"));
+            options.AddPolicy("PlatformAdmin", policy =>
+                policy.RequireClaim("platform_role", "PlatformAdmin"));
+        });
         return services;
     }
 }

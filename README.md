@@ -50,7 +50,7 @@ Em desenvolvimento, a configuração padrão espera PostgreSQL local com banco `
 
 O interceptor do EF Core preenche `CreatedAt`, `CreatedByName`, `UpdatedAt` e `UpdatedByName`. Alterações em owned entities também marcam o agregado como atualizado. Clientes, ordens, usuários e tenants implementam `IAuditableEntity` por meio de `AggregateRoot`.
 
-Os endpoints em `/api/customers` e `/api/service-orders` exigem um token JWT Bearer válido. Configure em produção:
+Os endpoints em `/api/customers` e `/api/service-orders` exigem autenticação. O JWT é transportado no cookie `ordivo.access_token`, configurado com `HttpOnly`, `SameSite=Strict` e `Secure=true` em produção. Configure em produção:
 
 ```text
 Jwt__Issuer
@@ -62,13 +62,14 @@ Jwt__Key
 
 ## Identidade
 
-- `POST /api/auth/register`: cria o primeiro usuário com papel `Owner`, armazena somente o hash da senha e retorna um JWT.
-- `POST /api/auth/login`: valida email e senha e retorna um novo JWT.
+- `POST /api/auth/register`: cria o primeiro usuário com papel `Owner`, armazena somente o hash da senha e grava o cookie de autenticação.
+- `POST /api/auth/login`: valida email e senha e grava um novo cookie de autenticação.
+- `POST /api/auth/logout`: remove o cookie de autenticação.
 - `IGenerateToken`: abstração da Application implementada pela infraestrutura JWT.
 - `IPasswordHasher`: abstração da Application implementada com `PasswordHasher` do ASP.NET Core.
 - `IUserContext`: disponibiliza `UserId`, email, papel e estado de autenticação a partir das claims da requisição.
 
-Os demais endpoints exigem o header `Authorization: Bearer <token>`.
+O frontend não recebe o token no JSON nem precisa manipulá-lo. O navegador envia o cookie `HttpOnly` automaticamente nas próximas requisições. Requisições cross-origin devem incluir credenciais (`credentials: "include"` no `fetch`).
 
 O registro recebe `tenantName`, `name`, `email` e `password`. Ele cria o tenant e seu primeiro usuário `Owner` na mesma unidade de trabalho.
 
@@ -99,4 +100,27 @@ docker compose up --build
 
 A API ficará em `http://localhost:8080` e o PostgreSQL em `localhost:5432`. O volume `postgres-data` preserva os dados entre reinicializações.
 
+Em desenvolvimento, a documentação interativa Scalar fica em `http://localhost:8080/scalar/v1` e o documento OpenAPI em `http://localhost:8080/openapi/v1.json`.
+
 No Compose, `Database__ApplyMigrations=true` aplica as migrations antes de iniciar o pipeline HTTP. Em produção, mantenha essa opção desabilitada e execute migrations em uma etapa única do deploy para evitar concorrência entre réplicas.
+
+## Administração global
+
+O administrador da plataforma usa `PlatformUser`, separado dos usuários de tenant. Ele não possui `TenantId` e recebe a claim `platform_role`.
+
+Configure o primeiro administrador por secret/variável de ambiente:
+
+```text
+PlatformAdmin__Name
+PlatformAdmin__Email
+PlatformAdmin__Password
+```
+
+A senha inicial precisa ter pelo menos 12 caracteres. O seed é idempotente e não substitui credenciais existentes.
+
+Em desenvolvimento, `appsettings.Development.json` contém uma credencial conhecida apenas para facilitar o primeiro acesso. O seed entrega a senha ao `PasswordHasher` e persiste somente seu hash. Em produção, sobrescreva `PlatformAdmin__Password` por secret manager e nunca versione a senha real.
+
+- `POST /api/platform/auth/login`: login de usuário da plataforma.
+- `GET /api/platform/tenants`: lista tenants usando a policy `PlatformAdmin`.
+
+Não existe registro público de administrador global. O bypass de filtros ocorre somente no `IPlatformTenantRepository`; repositórios normais continuam tenant-scoped.
