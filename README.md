@@ -110,7 +110,21 @@ O registro recebe `tenantName`, `name`, `email` e `password`. Ele cria o tenant 
 - Usuários, clientes e ordens de serviço possuem `TenantId` obrigatório.
 - Clientes e ordens usam filtros globais do EF Core pelo tenant autenticado.
 - O documento do cliente é único dentro do tenant, não globalmente.
+- O nome do tenant pode se repetir; cada tenant possui um `Slug` estável e único, gerado automaticamente.
 - Requisições sem uma claim `tenant_id` válida não acessam dados tenant-scoped.
+
+## Usuários do tenant
+
+O módulo `/api/users` é isolado pelo `TenantId` autenticado:
+
+- `GET /api/users`: lista os usuários do tenant.
+- `GET /api/users/{id}`: consulta um usuário do tenant.
+- `POST /api/users`: cria usuário; exige `Owner` ou `Admin`.
+- `PATCH /api/users/{id}/role`: altera papel; exige `Owner`.
+- `PATCH /api/users/{id}/status`: ativa ou desativa; exige `Owner` ou `Admin`.
+- `PUT /api/users/me/password`: troca a própria senha após validar a senha atual.
+
+Um `Admin` não pode administrar um `Owner`, o próprio usuário não pode se desativar e o último Owner ativo não pode ser rebaixado nem desativado. Senhas são persistidas somente como hash.
 
 O módulo de tenants oferece vertical slices sem services:
 

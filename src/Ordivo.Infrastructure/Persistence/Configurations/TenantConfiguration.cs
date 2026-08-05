@@ -12,6 +12,8 @@ internal sealed class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         builder.HasKey(tenant => tenant.Id);
         builder.Property(tenant => tenant.Id).ValueGeneratedNever();
         builder.Property(tenant => tenant.Name).HasMaxLength(160).IsRequired();
+        builder.Property(tenant => tenant.Slug).HasMaxLength(150).IsRequired();
+        builder.HasIndex(tenant => tenant.Slug).IsUnique();
         builder.Property(tenant => tenant.IsActive).IsRequired();
         builder.Property(tenant => tenant.CreatedAt).IsRequired();
         builder.Property(tenant => tenant.UpdatedAt);

@@ -9,6 +9,7 @@ public static class ResultExtensions
             "validation" => Results.BadRequest(new { error = result.Error }),
             "not_found" => Results.NotFound(new { error = result.Error }),
             "conflict" => Results.Conflict(new { error = result.Error }),
+            "forbidden" => Results.Json(new { error = result.Error }, statusCode: StatusCodes.Status403Forbidden),
             "unauthorized" => Results.Json(new { error = result.Error }, statusCode: StatusCodes.Status401Unauthorized),
             _ => Results.Problem(result.Error.Description)
         };

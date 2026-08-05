@@ -40,6 +40,8 @@ public sealed class User : AggregateRoot<Guid>, ITenantEntity
             ? throw new ArgumentException("Password hash is required.", nameof(passwordHash))
             : passwordHash;
 
+    public void ChangeRole(UserRole role) => Role = role;
+    public void Activate() => IsActive = true;
     public void Deactivate() => IsActive = false;
     public static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 }

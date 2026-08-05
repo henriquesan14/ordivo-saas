@@ -24,6 +24,8 @@ public interface IServiceOrderRepository
 }
 public interface IUserRepository
 {
+    Task<IReadOnlyCollection<User>> ListAsync(CancellationToken ct);
+    Task<int> CountActiveOwnersAsync(CancellationToken ct);
     Task<User?> GetByIdAsync(Guid id, CancellationToken ct);
     Task<User?> GetByEmailAsync(string normalizedEmail, CancellationToken ct);
     Task<bool> EmailExistsAsync(string normalizedEmail, CancellationToken ct);

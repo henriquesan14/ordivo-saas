@@ -7,6 +7,7 @@ public static class TenantMappingExtensions
     public static TenantDto ToDto(this Tenant tenant) => new(
         tenant.Id,
         tenant.Name,
+        tenant.Slug,
         tenant.IsActive,
         tenant.CreatedAt,
         tenant.UpdatedAt,

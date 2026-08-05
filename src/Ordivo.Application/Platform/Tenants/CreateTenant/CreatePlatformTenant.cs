@@ -16,6 +16,7 @@ public sealed record CreatePlatformTenantCommand(
 public sealed record CreatePlatformTenantDto(
     Guid TenantId,
     string TenantName,
+    string TenantSlug,
     bool IsActive,
     Guid OwnerUserId,
     string OwnerName,
@@ -53,6 +54,7 @@ public sealed class CreatePlatformTenantCommandHandler(
         return Result.Success(new CreatePlatformTenantDto(
             tenant.Id,
             tenant.Name,
+            tenant.Slug,
             tenant.IsActive,
             owner.Id,
             owner.Name,

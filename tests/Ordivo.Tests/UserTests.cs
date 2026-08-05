@@ -26,4 +26,27 @@ public sealed class UserTests
 
         Assert.False(user.IsActive);
     }
+
+    [Fact]
+    public void Administrative_changes_update_role_and_status()
+    {
+        var user = User.Create(Guid.NewGuid(), "Rico", "rico@example.com", "hashed-password");
+
+        user.ChangeRole(UserRole.Admin);
+        user.Deactivate();
+        user.Activate();
+
+        Assert.Equal(UserRole.Admin, user.Role);
+        Assert.True(user.IsActive);
+    }
+
+    [Fact]
+    public void ChangePassword_replaces_password_hash()
+    {
+        var user = User.Create(Guid.NewGuid(), "Rico", "rico@example.com", "old-hash");
+
+        user.ChangePassword("new-hash");
+
+        Assert.Equal("new-hash", user.PasswordHash);
+    }
 }

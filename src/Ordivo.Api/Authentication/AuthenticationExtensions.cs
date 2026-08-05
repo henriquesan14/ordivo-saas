@@ -52,6 +52,12 @@ public static class AuthenticationExtensions
         services.AddAuthorization(options =>
         {
             options.AddPolicy("TenantUser", policy => policy.RequireClaim("tenant_id"));
+            options.AddPolicy("TenantAdmin", policy => policy
+                .RequireClaim("tenant_id")
+                .RequireRole("Owner", "Admin"));
+            options.AddPolicy("TenantOwner", policy => policy
+                .RequireClaim("tenant_id")
+                .RequireRole("Owner"));
             options.AddPolicy("PlatformAdmin", policy =>
                 policy.RequireClaim("platform_role", "PlatformAdmin"));
         });

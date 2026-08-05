@@ -82,6 +82,7 @@ public static class AuthCookieExtensions
         "validation" => Results.BadRequest(new { error }),
         "not_found" => Results.NotFound(new { error }),
         "conflict" => Results.Conflict(new { error }),
+        "forbidden" => Results.Json(new { error }, statusCode: StatusCodes.Status403Forbidden),
         "unauthorized" => Results.Json(new { error }, statusCode: StatusCodes.Status401Unauthorized),
         _ => Results.Problem(error.Description)
     };
