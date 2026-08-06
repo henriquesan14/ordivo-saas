@@ -59,6 +59,8 @@ export interface Plan {
   maxUsers: number;
   maxCustomers: number;
   maxServiceOrders: number;
+  isActive: boolean;
+  activeSubscriptions: number;
 }
 export interface Subscription {
   id: string;

@@ -14,18 +14,14 @@ public sealed class CommercialAccessMiddleware(RequestDelegate next)
         if (subscription.BlocksAccess(clock.GetUtcNow())) { await WriteProblem(context, StatusCodes.Status402PaymentRequired, "Subscription blocked", "The tenant subscription is past due, suspended, canceled, or its trial expired."); return; }
         if (HttpMethods.IsPost(context.Request.Method))
         {
-            var plan = await commercial.GetPlanAsync(subscription.PlanId, context.RequestAborted);
-            if (plan is not null)
+            var exceeded = context.Request.Path.Value?.ToLowerInvariant() switch
             {
-                var exceeded = context.Request.Path.Value?.ToLowerInvariant() switch
-                {
-                    "/api/users" => await commercial.CountUsersAsync(user.TenantId, context.RequestAborted) >= plan.MaxUsers,
-                    "/api/customers" => await commercial.CountCustomersAsync(user.TenantId, context.RequestAborted) >= plan.MaxCustomers,
-                    "/api/service-orders" => await commercial.CountServiceOrdersAsync(user.TenantId, subscription.CurrentPeriodStartsAt, context.RequestAborted) >= plan.MaxServiceOrders,
-                    _ => false
-                };
-                if (exceeded) { await WriteProblem(context, StatusCodes.Status403Forbidden, "Plan limit reached", "Upgrade the subscription plan to create more resources."); return; }
-            }
+                "/api/users" => await commercial.CountUsersAsync(user.TenantId, context.RequestAborted) >= subscription.ContractMaxUsers,
+                "/api/customers" => await commercial.CountCustomersAsync(user.TenantId, context.RequestAborted) >= subscription.ContractMaxCustomers,
+                "/api/service-orders" => await commercial.CountServiceOrdersAsync(user.TenantId, subscription.CurrentPeriodStartsAt, context.RequestAborted) >= subscription.ContractMaxServiceOrders,
+                _ => false
+            };
+            if (exceeded) { await WriteProblem(context, StatusCodes.Status403Forbidden, "Plan limit reached", "Upgrade the subscription plan to create more resources."); return; }
         }
         await next(context);
     }

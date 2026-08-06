@@ -8,19 +8,25 @@ using Ordivo.SharedKernel.Results;
 
 namespace Ordivo.Application.Commercial;
 
-public sealed record PlanDto(Guid Id, string Name, string Code, decimal Price, string Currency, BillingInterval Interval, int TrialDays, int MaxUsers, int MaxCustomers, int MaxServiceOrders, bool IsActive);
+public sealed record PlanDto(Guid Id, string Name, string Code, decimal Price, string Currency, BillingInterval Interval, int TrialDays, int MaxUsers, int MaxCustomers, int MaxServiceOrders, bool IsActive, int ActiveSubscriptions = 0);
 public sealed record SubscriptionDto(Guid Id, Guid TenantId, PlanDto Plan, SubscriptionStatus Status, DateTimeOffset StartedAt, DateTimeOffset? TrialEndsAt, DateTimeOffset PeriodStartsAt, DateTimeOffset PeriodEndsAt, bool AccessBlocked, int UsersUsed, int CustomersUsed, int ServiceOrdersUsed);
 public sealed record InvoiceDto(Guid Id, string GatewayInvoiceId, decimal Amount, string Currency, InvoiceStatus Status, DateTimeOffset DueAt, DateTimeOffset? PaidAt);
 public static class CommercialMappings
 {
-    public static PlanDto ToDto(this Plan x) => new(x.Id, x.Name, x.Code, x.Price, x.Currency, x.Interval, x.TrialDays, x.MaxUsers, x.MaxCustomers, x.MaxServiceOrders, x.IsActive);
+    public static PlanDto ToDto(this Plan x, int activeSubscriptions = 0) => new(x.Id, x.Name, x.Code, x.Price, x.Currency, x.Interval, x.TrialDays, x.MaxUsers, x.MaxCustomers, x.MaxServiceOrders, x.IsActive, activeSubscriptions);
+    public static PlanDto ToContractDto(this Subscription x) => new(x.PlanId, x.PlanName, x.PlanCode, x.ContractPrice, x.ContractCurrency, x.ContractInterval, x.ContractTrialDays, x.ContractMaxUsers, x.ContractMaxCustomers, x.ContractMaxServiceOrders, true);
     public static InvoiceDto ToDto(this BillingInvoice x) => new(x.Id, x.GatewayInvoiceId, x.Amount, x.Currency, x.Status, x.DueAt, x.PaidAt);
 }
 
 public sealed record ListPlansQuery(bool ActiveOnly = true) : IQuery<IReadOnlyCollection<PlanDto>>;
 public sealed class ListPlansQueryHandler(ICommercialRepository repository) : IQueryHandler<ListPlansQuery, IReadOnlyCollection<PlanDto>>
 {
-    public async Task<Result<IReadOnlyCollection<PlanDto>>> Handle(ListPlansQuery q, CancellationToken ct) => Result.Success<IReadOnlyCollection<PlanDto>>((await repository.ListPlansAsync(q.ActiveOnly, ct)).Select(x => x.ToDto()).ToArray());
+    public async Task<Result<IReadOnlyCollection<PlanDto>>> Handle(ListPlansQuery q, CancellationToken ct)
+    {
+        var plans = await repository.ListPlansAsync(q.ActiveOnly, ct); var result = new List<PlanDto>(plans.Count);
+        foreach (var plan in plans) result.Add(plan.ToDto(await repository.CountSubscriptionsByPlanAsync(plan.Id, ct)));
+        return Result.Success<IReadOnlyCollection<PlanDto>>(result);
+    }
 }
 
 public sealed record UpsertPlanCommand(Guid? Id, string Name, string Code, decimal Price, string Currency, BillingInterval Interval, int TrialDays, int MaxUsers, int MaxCustomers, int MaxServiceOrders) : ICommand<PlanDto>;
@@ -68,15 +74,15 @@ public sealed class AssignSubscriptionHandler(ICommercialRepository repository, 
         var plan = await repository.GetPlanAsync(c.PlanId, ct); if (plan is null || !plan.IsActive) return Result.Failure<SubscriptionDto>(Error.NotFound("Active plan not found."));
         var now = clock.GetUtcNow(); var subscription = await repository.GetSubscriptionAsync(c.TenantId, true, ct);
         if (subscription is null) { subscription = Subscription.Start(c.TenantId, plan, now, c.GatewayCustomerId, c.GatewaySubscriptionId); await repository.AddSubscriptionAsync(subscription, ct); }
-        else { subscription.ChangePlan(plan, now); subscription.SetGatewayReferences(c.GatewayCustomerId, c.GatewaySubscriptionId); }
-        await uow.SaveChangesAsync(ct); return Result.Success(await Build(subscription, plan, repository, now, ct));
+        else { subscription.ChangePlan(plan, now); if (c.GatewayCustomerId is not null || c.GatewaySubscriptionId is not null) subscription.SetGatewayReferences(c.GatewayCustomerId, c.GatewaySubscriptionId); }
+        await uow.SaveChangesAsync(ct); return Result.Success(await Build(subscription, repository, now, ct));
     }
-    internal static async Task<SubscriptionDto> Build(Subscription s, Plan p, ICommercialRepository r, DateTimeOffset now, CancellationToken ct) => new(s.Id, s.TenantId, p.ToDto(), s.Status, s.StartedAt, s.TrialEndsAt, s.CurrentPeriodStartsAt, s.CurrentPeriodEndsAt, s.BlocksAccess(now), await r.CountUsersAsync(s.TenantId, ct), await r.CountCustomersAsync(s.TenantId, ct), await r.CountServiceOrdersAsync(s.TenantId, s.CurrentPeriodStartsAt, ct));
+    internal static async Task<SubscriptionDto> Build(Subscription s, ICommercialRepository r, DateTimeOffset now, CancellationToken ct) => new(s.Id, s.TenantId, s.ToContractDto(), s.Status, s.StartedAt, s.TrialEndsAt, s.CurrentPeriodStartsAt, s.CurrentPeriodEndsAt, s.BlocksAccess(now), await r.CountUsersAsync(s.TenantId, ct), await r.CountCustomersAsync(s.TenantId, ct), await r.CountServiceOrdersAsync(s.TenantId, s.CurrentPeriodStartsAt, ct));
 }
 public sealed record GetCurrentSubscriptionQuery : IQuery<SubscriptionDto>;
 public sealed class GetCurrentSubscriptionHandler(ICommercialRepository repository, IUserContext user, TimeProvider clock) : IQueryHandler<GetCurrentSubscriptionQuery, SubscriptionDto>
 {
-    public async Task<Result<SubscriptionDto>> Handle(GetCurrentSubscriptionQuery q, CancellationToken ct) { var s = await repository.GetSubscriptionAsync(user.TenantId, false, ct); if (s is null) return Result.Failure<SubscriptionDto>(Error.NotFound("Subscription not found.")); var p = await repository.GetPlanAsync(s.PlanId, ct); return p is null ? Result.Failure<SubscriptionDto>(Error.NotFound("Plan not found.")) : Result.Success(await AssignSubscriptionHandler.Build(s, p, repository, clock.GetUtcNow(), ct)); }
+    public async Task<Result<SubscriptionDto>> Handle(GetCurrentSubscriptionQuery q, CancellationToken ct) { var s = await repository.GetSubscriptionAsync(user.TenantId, false, ct); return s is null ? Result.Failure<SubscriptionDto>(Error.NotFound("Subscription not found.")) : Result.Success(await AssignSubscriptionHandler.Build(s, repository, clock.GetUtcNow(), ct)); }
 }
 public sealed record ListInvoicesQuery : IQuery<IReadOnlyCollection<InvoiceDto>>;
 public sealed class ListInvoicesHandler(ICommercialRepository repository, IUserContext user) : IQueryHandler<ListInvoicesQuery, IReadOnlyCollection<InvoiceDto>>
@@ -94,8 +100,7 @@ public sealed class CreateCheckoutHandler(ICommercialRepository repository, IPay
     public async Task<Result<CheckoutResult>> Handle(CreateCheckoutCommand c, CancellationToken ct)
     {
         var subscription = await repository.GetSubscriptionAsync(user.TenantId, false, ct); if (subscription is null) return Result.Failure<CheckoutResult>(Error.NotFound("Subscription not found."));
-        var plan = await repository.GetPlanAsync(subscription.PlanId, ct); if (plan is null || !plan.IsActive) return Result.Failure<CheckoutResult>(Error.NotFound("Active plan not found."));
-        var checkout = await gateway.CreateCheckoutAsync(new(user.TenantId, subscription.Id, plan.Id, plan.Price, plan.Currency, plan.Name, c.SuccessUrl, c.CancelUrl), ct);
+        var checkout = await gateway.CreateCheckoutAsync(new(user.TenantId, subscription.Id, subscription.PlanId, subscription.ContractPrice, subscription.ContractCurrency, subscription.PlanName, c.SuccessUrl, c.CancelUrl), ct);
         return Result.Success(checkout);
     }
 }

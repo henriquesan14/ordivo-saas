@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Ordivo.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Ordivo.Infrastructure.Persistence;
 namespace Ordivo.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(OrdivoDbContext))]
-    partial class OrdivoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260806213830_AddSubscriptionContractSnapshot")]
+    partial class AddSubscriptionContractSnapshot
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -48,6 +48,15 @@ public sealed class Subscription : AggregateRoot<Guid>
     public DateTimeOffset? CanceledAt { get; private set; }
     public string? GatewayCustomerId { get; private set; }
     public string? GatewaySubscriptionId { get; private set; }
+    public string PlanName { get; private set; } = string.Empty;
+    public string PlanCode { get; private set; } = string.Empty;
+    public decimal ContractPrice { get; private set; }
+    public string ContractCurrency { get; private set; } = "BRL";
+    public BillingInterval ContractInterval { get; private set; }
+    public int ContractTrialDays { get; private set; }
+    public int ContractMaxUsers { get; private set; }
+    public int ContractMaxCustomers { get; private set; }
+    public int ContractMaxServiceOrders { get; private set; }
 
     public static Subscription Start(Guid tenantId, Plan plan, DateTimeOffset now, string? customerId = null, string? subscriptionId = null)
     {
@@ -58,16 +67,23 @@ public sealed class Subscription : AggregateRoot<Guid>
             CurrentPeriodStartsAt = now, CurrentPeriodEndsAt = trialEnd ?? AddPeriod(now, plan.Interval),
             Status = trialEnd.HasValue ? SubscriptionStatus.Trialing : SubscriptionStatus.Active,
             GatewayCustomerId = customerId, GatewaySubscriptionId = subscriptionId
-        };
+        }.ApplyPlanSnapshot(plan);
     }
 
-    public void ChangePlan(Plan plan, DateTimeOffset now) { PlanId = plan.Id; CurrentPeriodStartsAt = now; CurrentPeriodEndsAt = AddPeriod(now, plan.Interval); }
+    public void ChangePlan(Plan plan, DateTimeOffset now) { ApplyPlanSnapshot(plan); CurrentPeriodStartsAt = now; CurrentPeriodEndsAt = AddPeriod(now, plan.Interval); TrialEndsAt = null; Status = SubscriptionStatus.Active; }
     public void SetGatewayReferences(string? customerId, string? subscriptionId) { GatewayCustomerId = customerId; GatewaySubscriptionId = subscriptionId; }
     public void MarkActive(DateTimeOffset periodEnd, DateTimeOffset now) { Status = SubscriptionStatus.Active; CurrentPeriodStartsAt = now; CurrentPeriodEndsAt = periodEnd; TrialEndsAt = null; }
     public void MarkPastDue() => Status = SubscriptionStatus.PastDue;
     public void Suspend() => Status = SubscriptionStatus.Suspended;
     public void Cancel(DateTimeOffset now) { Status = SubscriptionStatus.Canceled; CanceledAt = now; }
     public bool BlocksAccess(DateTimeOffset now) => Status is SubscriptionStatus.PastDue or SubscriptionStatus.Suspended or SubscriptionStatus.Canceled || Status == SubscriptionStatus.Trialing && TrialEndsAt <= now;
+    private Subscription ApplyPlanSnapshot(Plan plan)
+    {
+        PlanId = plan.Id; PlanName = plan.Name; PlanCode = plan.Code; ContractPrice = plan.Price;
+        ContractCurrency = plan.Currency; ContractInterval = plan.Interval; ContractTrialDays = plan.TrialDays;
+        ContractMaxUsers = plan.MaxUsers; ContractMaxCustomers = plan.MaxCustomers; ContractMaxServiceOrders = plan.MaxServiceOrders;
+        return this;
+    }
     private static DateTimeOffset AddPeriod(DateTimeOffset now, BillingInterval interval) => interval == BillingInterval.Yearly ? now.AddYears(1) : now.AddMonths(1);
 }
 

@@ -10,6 +10,7 @@ internal sealed class CommercialRepository(OrdivoDbContext db) : ICommercialRepo
         await db.Plans.AsNoTracking().Where(x => !activeOnly || x.IsActive).OrderBy(x => x.Price).ToListAsync(ct);
     public Task<Plan?> GetPlanAsync(Guid id, CancellationToken ct) => db.Plans.SingleOrDefaultAsync(x => x.Id == id, ct);
     public Task<bool> PlanCodeExistsAsync(string code, Guid? excludingId, CancellationToken ct) => db.Plans.AnyAsync(x => x.Code == code.Trim().ToLower() && (!excludingId.HasValue || x.Id != excludingId), ct);
+    public Task<int> CountSubscriptionsByPlanAsync(Guid planId, CancellationToken ct) => db.Subscriptions.IgnoreQueryFilters().CountAsync(x => x.PlanId == planId && x.Status != SubscriptionStatus.Canceled, ct);
     public Task AddPlanAsync(Plan plan, CancellationToken ct) => db.Plans.AddAsync(plan, ct).AsTask();
     public async Task<Subscription?> GetSubscriptionAsync(Guid tenantId, bool tracked, CancellationToken ct)
     {

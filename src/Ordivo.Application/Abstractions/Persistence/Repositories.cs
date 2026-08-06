@@ -79,6 +79,7 @@ public interface ICommercialRepository
     Task<IReadOnlyCollection<Plan>> ListPlansAsync(bool activeOnly, CancellationToken ct);
     Task<Plan?> GetPlanAsync(Guid id, CancellationToken ct);
     Task<bool> PlanCodeExistsAsync(string code, Guid? excludingId, CancellationToken ct);
+    Task<int> CountSubscriptionsByPlanAsync(Guid planId, CancellationToken ct);
     Task AddPlanAsync(Plan plan, CancellationToken ct);
     Task<Subscription?> GetSubscriptionAsync(Guid tenantId, bool tracked, CancellationToken ct);
     Task AddSubscriptionAsync(Subscription subscription, CancellationToken ct);

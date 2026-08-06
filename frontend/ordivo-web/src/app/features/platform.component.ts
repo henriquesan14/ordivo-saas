@@ -680,15 +680,37 @@ export class PlatformTenantsComponent {
 
 @Component({
   selector: 'app-platform-plans',
-  imports: [CurrencyPipe],
+  imports: [CurrencyPipe, ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `<div class="page-head">
       <div>
         <p class="eyebrow">COMERCIAL</p>
         <h1>Planos</h1>
-        <p>Catálogo, preços e limites disponíveis.</p>
+        <p>Catálogo, preços e limites para novas contratações.</p>
       </div>
+      <button class="primary" (click)="open()">+ Novo plano</button>
     </div>
+    @if (editing()) {
+      <form class="card plan-form" [formGroup]="form" (ngSubmit)="save()">
+        <div class="form-title"><div><h2>{{ editingId() ? 'Editar plano' : 'Criar plano' }}</h2><p>Assinaturas existentes preservam o preço e os limites contratados.</p></div><button type="button" class="close" (click)="close()">×</button></div>
+        <label>Nome<input formControlName="name" /></label><label>Código<input formControlName="code" /></label>
+        <label>Preço<input formControlName="price" type="number" min="0" step="0.01" /></label><label>Moeda<input formControlName="currency" maxlength="3" /></label>
+        <label>Periodicidade<select formControlName="interval"><option value="Monthly">Mensal</option><option value="Yearly">Anual</option></select></label><label>Dias de trial<input formControlName="trialDays" type="number" min="0" /></label>
+        <label>Máximo de usuários<input formControlName="maxUsers" type="number" min="1" /></label><label>Máximo de clientes<input formControlName="maxCustomers" type="number" min="1" /></label>
+        <label>Ordens por período<input formControlName="maxServiceOrders" type="number" min="1" /></label>
+        @if (editingPlan()?.activeSubscriptions) { <div class="contract-warning">Este plano possui {{ editingPlan()!.activeSubscriptions }} assinatura(s). As alterações valerão somente para novas assinaturas; migrações são feitas explicitamente no tenant.</div> }
+        @if (error()) { <div class="alert form-error">{{ error() }}</div> }
+        <div class="form-actions"><button type="button" class="secondary" (click)="close()">Cancelar</button><button class="primary" [disabled]="form.invalid || saving()">{{ saving() ? 'Salvando...' : 'Salvar plano' }}</button></div>
+      </form>
+    }
+    <form class="card migration-form" (submit)="$event.preventDefault(); migrate()">
+      <div><p class="eyebrow">MIGRAÇÃO EXPLÍCITA</p><h2>Alterar contrato de um tenant</h2><p>Substitui o snapshot comercial somente para o tenant selecionado.</p></div>
+      <label>Buscar tenant<input [formControl]="tenantSearch" placeholder="Nome ou slug" autocomplete="off" /></label>
+      <label>Tenant encontrado<select [formControl]="migrationTenant"><option value="">Selecione</option>@for(t of filteredTenants();track t.id){<option [value]="t.id">{{t.name}} · {{t.slug}}</option>}</select><small>{{filteredTenants().length}} resultado(s)</small></label>
+      <label>Novo plano<select [formControl]="migrationPlan"><option value="">Selecione</option>@for(p of items();track p.id){@if(p.isActive){<option [value]="p.id">{{p.name}}</option>}}</select></label>
+      <button class="primary" [disabled]="migrationTenant.invalid || migrationPlan.invalid || migrating()">{{migrating()?'Migrando...':'Migrar assinatura'}}</button>
+      @if (error() && !editing()) { <div class="alert migration-error">{{error()}}</div> }
+    </form>
     <section class="plan-grid">
       @for (p of items(); track p.id) {
         <article class="card p-plan">
@@ -704,14 +726,31 @@ export class PlatformTenantsComponent {
             <li>{{ p.maxServiceOrders }} ordens por período</li>
             <li>{{ p.trialDays }} dias de trial</li>
           </ul>
+          <p>{{ p.activeSubscriptions }} assinatura(s) · {{ p.isActive ? 'Ativo' : 'Inativo' }}</p>
+          <div class="row-actions"><button class="table-action" (click)="open(p)">Editar</button><button class="table-action" (click)="toggle(p)">{{ p.isActive ? 'Desativar' : 'Ativar' }}</button></div>
         </article>
       }
     </section>`,
+  styles: [`
+    .plan-form{padding:22px;margin:-10px 0 22px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.plan-form .form-title,.plan-form .contract-warning,.plan-form .form-error,.plan-form .form-actions{grid-column:1/-1}.form-title{display:flex;align-items:flex-start;justify-content:space-between;border-bottom:1px solid #e7ebe6;padding-bottom:14px}.form-title h2{margin:0 0 5px}.form-title p{margin:0;color:#74837f;font-size:11px}.plan-form label,.migration-form label{font-size:11px;font-weight:800}.plan-form input,.plan-form select,.migration-form input,.migration-form select{display:block;width:100%;height:39px;box-sizing:border-box;margin-top:7px;border:1px solid #d9e1da;border-radius:8px;padding:9px 10px;background:#fff}.close{width:32px;height:32px;border:1px solid #d9e1da;border-radius:8px;background:#fff;color:#52645f;font-size:20px;line-height:1;cursor:pointer}.close:hover{background:#f1f4ef;color:#173f39}.form-actions{display:flex;justify-content:flex-end;gap:9px}.secondary{border:1px solid #cfd8d1;border-radius:8px;background:#fff;color:#334b45;padding:10px 17px;font-weight:800;cursor:pointer}.secondary:hover{background:#f1f4ef;border-color:#aebdb2}.contract-warning{padding:12px;border-radius:8px;background:#fff5d8;color:#6c5310;font-size:12px}.migration-form{padding:18px;margin:-10px 0 22px;display:grid;grid-template-columns:1.35fr 1fr 1.15fr 1fr auto;gap:14px;align-items:start}.migration-form h2{font-size:16px;margin:4px 0}.migration-form p{font-size:11px;color:#74837f;margin:0}.migration-form button.primary{margin-top:18px;height:39px}.migration-form label small{display:block;margin-top:4px;color:#74837f;font-weight:500}.migration-error{grid-column:1/-1}.p-plan>p{color:#74837f;font-size:11px}.row-actions{display:flex;gap:8px;margin-top:14px}@media(max-width:1000px){.migration-form{grid-template-columns:1fr 1fr}.migration-form>div:first-child,.migration-form button.primary{grid-column:1/-1}.migration-form button.primary{margin-top:0}}@media(max-width:800px){.plan-form,.migration-form{grid-template-columns:1fr}.migration-form>*{grid-column:1!important}}
+  `],
 })
 export class PlatformPlansComponent {
   private api = inject(Api);
+  private fb = inject(FormBuilder);
   items = signal<Plan[]>([]);
+  tenants = signal<PlatformTenant[]>([]);
+  editing = signal(false); editingId = signal<string|null>(null); editingPlan = signal<Plan|null>(null); saving = signal(false); error = signal('');
+  migrating = signal(false); tenantSearch = this.fb.nonNullable.control(''); migrationTenant = this.fb.nonNullable.control('',Validators.required); migrationPlan = this.fb.nonNullable.control('',Validators.required);
+  form = this.fb.nonNullable.group({name:['',Validators.required],code:['',Validators.required],price:[0,[Validators.required,Validators.min(0)]],currency:['BRL',[Validators.required,Validators.minLength(3),Validators.maxLength(3)]],interval:['Monthly' as 'Monthly'|'Yearly',Validators.required],trialDays:[14,[Validators.required,Validators.min(0)]],maxUsers:[10,[Validators.required,Validators.min(1)]],maxCustomers:[500,[Validators.required,Validators.min(1)]],maxServiceOrders:[200,[Validators.required,Validators.min(1)]]});
   constructor() {
-    this.api.get<Plan[]>('/api/platform/plans').subscribe((x) => this.items.set(x));
+    this.load(); this.api.get<PlatformTenant[]>('/api/platform/tenants').subscribe(x=>this.tenants.set(x.filter(t=>t.isActive)));
   }
+  load(){this.api.get<Plan[]>('/api/platform/plans').subscribe((x)=>this.items.set(x));}
+  filteredTenants(){const search=this.tenantSearch.value.trim().toLocaleLowerCase('pt-BR');return this.tenants().filter(t=>!search||t.name.toLocaleLowerCase('pt-BR').includes(search)||t.slug.toLocaleLowerCase('pt-BR').includes(search)).slice(0,20);}
+  open(p?:Plan){this.editing.set(true);this.editingId.set(p?.id??null);this.editingPlan.set(p??null);this.error.set('');this.form.reset(p?{name:p.name,code:p.code,price:p.price,currency:p.currency,interval:p.interval,trialDays:p.trialDays,maxUsers:p.maxUsers,maxCustomers:p.maxCustomers,maxServiceOrders:p.maxServiceOrders}:{name:'',code:'',price:0,currency:'BRL',interval:'Monthly',trialDays:14,maxUsers:10,maxCustomers:500,maxServiceOrders:200});}
+  close(){this.editing.set(false);this.editingId.set(null);this.editingPlan.set(null);}
+  save(){if(this.form.invalid)return;const id=this.editingId();const request=id?this.api.put<Plan>(`/api/platform/plans/${id}`,this.form.getRawValue()):this.api.post<Plan>('/api/platform/plans',this.form.getRawValue());this.saving.set(true);request.pipe(finalize(()=>this.saving.set(false))).subscribe({next:()=>{this.close();this.load();},error:e=>this.error.set(errorMessage(e))});}
+  toggle(p:Plan){const warning=p.activeSubscriptions?`O plano possui ${p.activeSubscriptions} assinatura(s). Os contratos atuais serão preservados. Deseja ${p.isActive?'desativar':'ativar'} o plano?`:`Deseja ${p.isActive?'desativar':'ativar'} este plano?`;if(!confirm(warning))return;this.api.patch<Plan>(`/api/platform/plans/${p.id}/status`,{isActive:!p.isActive}).subscribe(()=>this.load());}
+  migrate(){if(this.migrationTenant.invalid||this.migrationPlan.invalid)return;const tenant=this.tenants().find(x=>x.id===this.migrationTenant.value);const plan=this.items().find(x=>x.id===this.migrationPlan.value);if(!tenant||!plan||!confirm(`Migrar ${tenant.name} para ${plan.name}? O preço e os limites contratados serão substituídos.`))return;this.migrating.set(true);this.api.put(`/api/platform/tenants/${tenant.id}/subscription`,{planId:plan.id,gatewayCustomerId:null,gatewaySubscriptionId:null}).pipe(finalize(()=>this.migrating.set(false))).subscribe({next:()=>{this.tenantSearch.reset();this.migrationTenant.reset();this.migrationPlan.reset();this.load();},error:e=>this.error.set(errorMessage(e))});}
 }

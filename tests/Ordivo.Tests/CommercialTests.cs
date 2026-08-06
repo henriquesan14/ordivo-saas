@@ -46,4 +46,26 @@ public sealed class CommercialTests
         Assert.Equal(renewedAt, subscription.CurrentPeriodStartsAt);
         Assert.False(subscription.BlocksAccess(renewedAt));
     }
+
+    [Fact]
+    public void Plan_changes_do_not_change_an_existing_contract_snapshot()
+    {
+        var now = DateTimeOffset.UtcNow; var plan = PlanWithTrial();
+        var subscription = Subscription.Start(Guid.NewGuid(), plan, now);
+        plan.Update("Pro Plus", "pro-plus", 149.90m, "BRL", BillingInterval.Monthly, 7, 20, 1000, 500);
+        Assert.Equal("Pro", subscription.PlanName);
+        Assert.Equal(99.90m, subscription.ContractPrice);
+        Assert.Equal(10, subscription.ContractMaxUsers);
+    }
+
+    [Fact]
+    public void Explicit_plan_change_replaces_the_contract_snapshot()
+    {
+        var now = DateTimeOffset.UtcNow; var subscription = Subscription.Start(Guid.NewGuid(), PlanWithTrial(), now);
+        var enterprise = Plan.Create("Enterprise", "enterprise", 499m, "BRL", BillingInterval.Monthly, 0, 100, 10000, 5000);
+        subscription.ChangePlan(enterprise, now.AddDays(1));
+        Assert.Equal(enterprise.Id, subscription.PlanId);
+        Assert.Equal(499m, subscription.ContractPrice);
+        Assert.Equal(100, subscription.ContractMaxUsers);
+    }
 }

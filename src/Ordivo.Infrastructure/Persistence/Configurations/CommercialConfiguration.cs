@@ -22,6 +22,8 @@ internal sealed class SubscriptionConfiguration : IEntityTypeConfiguration<Subsc
         b.HasOne<Plan>().WithMany().HasForeignKey(x => x.PlanId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Ordivo.Domain.Tenants.Tenant>().WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Cascade);
         b.Property(x => x.Status).HasConversion<string>().HasMaxLength(30); b.Property(x => x.GatewayCustomerId).HasMaxLength(200); b.Property(x => x.GatewaySubscriptionId).HasMaxLength(200); b.HasIndex(x => x.GatewaySubscriptionId).IsUnique();
+        b.Property(x => x.PlanName).HasMaxLength(120).IsRequired(); b.Property(x => x.PlanCode).HasMaxLength(60).IsRequired();
+        b.Property(x => x.ContractPrice).HasPrecision(18, 2); b.Property(x => x.ContractCurrency).HasMaxLength(3).IsRequired(); b.Property(x => x.ContractInterval).HasConversion<string>().HasMaxLength(20);
         b.Property(x => x.Version).IsConcurrencyToken(); b.Ignore(x => x.DomainEvents);
     }
 }
