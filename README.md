@@ -170,6 +170,16 @@ docker compose up --build
 
 A API ficará em `http://localhost:8080` e o PostgreSQL em `localhost:5432`. O volume `postgres-data` preserva os dados e `data-protection-keys` preserva as chaves criptográficas usadas pelo antiforgery entre reinicializações.
 
+O frontend Angular 22 fica em `http://localhost:4200`. No Compose, ele é servido por Nginx e encaminha `/api` para a API no mesmo domínio, preservando cookies HttpOnly e evitando configuração adicional de CORS. Para desenvolvimento com hot reload:
+
+```powershell
+cd frontend/ordivo-web
+npm ci
+npm start
+```
+
+O servidor Angular usa `proxy.conf.json` e também encaminha `/api` para `http://localhost:8080`.
+
 Configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL` e `FRONTEND_BASE_URL` para entrega real de emails. Sem `SMTP_HOST`, os links de verificação, recuperação e convite são registrados no log da API para desenvolvimento local.
 
 Em desenvolvimento, a documentação interativa Scalar fica em `http://localhost:8080/scalar/v1` e o documento OpenAPI em `http://localhost:8080/openapi/v1.json`.

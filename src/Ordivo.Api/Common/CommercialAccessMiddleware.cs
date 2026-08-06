@@ -7,7 +7,8 @@ public sealed class CommercialAccessMiddleware(RequestDelegate next)
 {
     public async Task InvokeAsync(HttpContext context, ICommercialRepository commercial, IUserContext user, TimeProvider clock)
     {
-        if (!user.IsAuthenticated || user.TenantId == Guid.Empty || IsExcluded(context.Request.Path)) { await next(context); return; }
+        if (!user.IsAuthenticated || IsExcluded(context.Request.Path)) { await next(context); return; }
+        if (user.TenantId == Guid.Empty) { await next(context); return; }
         var subscription = await commercial.GetSubscriptionAsync(user.TenantId, false, context.RequestAborted);
         if (subscription is null) { await next(context); return; }
         if (subscription.BlocksAccess(clock.GetUtcNow())) { await WriteProblem(context, StatusCodes.Status402PaymentRequired, "Subscription blocked", "The tenant subscription is past due, suspended, canceled, or its trial expired."); return; }

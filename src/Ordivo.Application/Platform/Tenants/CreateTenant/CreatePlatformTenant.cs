@@ -49,6 +49,7 @@ public sealed class CreatePlatformTenantCommandHandler(
             normalizedEmail,
             passwordHasher.Hash(command.OwnerPassword),
             UserRole.Owner);
+        owner.VerifyEmail(clock.GetUtcNow());
 
         await tenants.AddAsync(tenant, ct);
         await users.AddAsync(owner, ct);

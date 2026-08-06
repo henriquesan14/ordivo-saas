@@ -1,6 +1,17 @@
 name: ordivo
 
 services:
+  web:
+    build:
+      context: ./frontend/ordivo-web
+      dockerfile: Dockerfile
+    ports:
+      - "4200:80"
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
+
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
