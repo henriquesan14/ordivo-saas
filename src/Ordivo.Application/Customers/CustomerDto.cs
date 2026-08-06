@@ -7,6 +7,7 @@ public sealed record CustomerDto(
     string Document,
     string Phone,
     string? Email,
+    bool IsActive,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
     string CreatedByName,

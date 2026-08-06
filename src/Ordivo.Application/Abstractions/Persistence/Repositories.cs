@@ -11,9 +11,12 @@ public interface IUnitOfWork
 }
 public interface ICustomerRepository
 {
-    Task<IReadOnlyCollection<Customer>> ListAsync(CancellationToken ct);
+    Task<(IReadOnlyCollection<Customer> Items, int TotalCount)> ListAsync(
+        string? name, string? document, string? email, string? phone,
+        bool includeInactive, int page, int pageSize, string sortBy, bool descending,
+        CancellationToken ct);
     Task<Customer?> GetAsync(Guid id, CancellationToken ct);
-    Task<bool> DocumentExistsAsync(string document, CancellationToken ct);
+    Task<bool> DocumentExistsAsync(string document, CancellationToken ct, Guid? excludingCustomerId = null);
     Task AddAsync(Customer customer, CancellationToken ct);
 }
 public interface IServiceOrderRepository

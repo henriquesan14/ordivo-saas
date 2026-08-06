@@ -106,6 +106,16 @@ O rate limiting usa uma janela fixa de 60 segundos: 120 requisições globais, 5
 
 O registro recebe `tenantName`, `name`, `email` e `password`. Ele cria o tenant e seu primeiro usuário `Owner` na mesma unidade de trabalho.
 
+## Clientes
+
+- `POST /api/customers`: cria um cliente.
+- `GET /api/customers/{id}`: consulta um cliente.
+- `PUT /api/customers/{id}`: atualiza nome, documento, telefone e email.
+- `PATCH /api/customers/{id}/status`: ativa ou desativa sem excluir o histórico.
+- `GET /api/customers`: retorna `PagedResult<CustomerDto>`.
+
+A listagem aceita `name`, `document`, `email`, `phone`, `includeInactive`, `page`, `pageSize`, `sortBy` e `descending`. O tamanho máximo de página é 100; clientes inativos são omitidos por padrão. Os campos de ordenação são `name`, `document`, `email`, `phone`, `createdAt` e `updatedAt`.
+
 ## Multi-tenancy
 
 - O JWT contém as claims `sub` e `tenant_id`.

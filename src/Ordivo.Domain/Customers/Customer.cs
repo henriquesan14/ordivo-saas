@@ -9,6 +9,7 @@ public sealed class Customer : AggregateRoot<Guid>, ITenantEntity
         var customer = new Customer(Guid.NewGuid());
         customer.TenantId = tenantId;
         customer.Update(name, document, phone, email);
+        customer.IsActive = true;
         customer.Raise(new CustomerCreatedDomainEvent(customer.Id, customer.CreatedAt));
         return customer;
     }
@@ -17,11 +18,14 @@ public sealed class Customer : AggregateRoot<Guid>, ITenantEntity
     public string Document { get; private set; } = string.Empty;
     public string Phone { get; private set; } = string.Empty;
     public string? Email { get; private set; }
+    public bool IsActive { get; private set; }
     public void Update(string name, string document, string phone, string? email)
     {
         Name = Required(name, nameof(name), 120); Document = Required(document, nameof(document), 20);
         Phone = Required(phone, nameof(phone), 20); Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim();
     }
+    public void Activate() => IsActive = true;
+    public void Deactivate() => IsActive = false;
     private static string Required(string value, string field, int maxLength)
     {
         if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException($"{field} is required.", field);

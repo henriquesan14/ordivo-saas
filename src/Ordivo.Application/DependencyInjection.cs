@@ -12,6 +12,9 @@ using Ordivo.Application.Authentication.Identity;
 using Ordivo.Application.Customers.CreateCustomer;
 using Ordivo.Application.Customers.GetCustomer;
 using Ordivo.Application.Customers.ListCustomers;
+using Ordivo.Application.Customers.UpdateCustomer;
+using Ordivo.Application.Customers.ChangeCustomerStatus;
+using Ordivo.Application.Common;
 using Ordivo.Application.ServiceOrders.ChangeServiceOrderStatus;
 using Ordivo.Application.ServiceOrders;
 using Ordivo.Application.ServiceOrders.CreateServiceOrder;
@@ -60,6 +63,8 @@ public static class DependencyInjection
         services.AddCommandHandler<ChangePlatformTenantStatusCommand, PlatformTenantDto, ChangePlatformTenantStatusCommandHandler>();
         services.AddCommandHandler<UpdateTenantCommand, TenantDto, UpdateTenantCommandHandler>();
         services.AddCommandHandler<CreateCustomerCommand, CustomerDto, CreateCustomerCommandHandler>();
+        services.AddCommandHandler<UpdateCustomerCommand, CustomerDto, UpdateCustomerCommandHandler>();
+        services.AddCommandHandler<ChangeCustomerStatusCommand, CustomerDto, ChangeCustomerStatusCommandHandler>();
         services.AddCommandHandler<CreateServiceOrderCommand, ServiceOrderDto, CreateServiceOrderCommandHandler>();
         services.AddCommandHandler<ChangeServiceOrderStatusCommand, ServiceOrderDto, ChangeServiceOrderStatusCommandHandler>();
         services.AddCommandHandler<CreateUserCommand, UserDto, CreateUserCommandHandler>();
@@ -74,7 +79,7 @@ public static class DependencyInjection
         services.AddScoped<IQueryHandler<ListAuthSessionsQuery, IReadOnlyCollection<AuthSessionDto>>, ListAuthSessionsQueryHandler>();
         services.AddScoped<IQueryHandler<GetCurrentTenantQuery, TenantDto>, GetCurrentTenantQueryHandler>();
         services.AddScoped<IQueryHandler<GetCustomerQuery, CustomerDto>, GetCustomerQueryHandler>();
-        services.AddScoped<IQueryHandler<ListCustomersQuery, IReadOnlyCollection<CustomerDto>>, ListCustomersQueryHandler>();
+        services.AddScoped<IQueryHandler<ListCustomersQuery, PagedResult<CustomerDto>>, ListCustomersQueryHandler>();
         services.AddScoped<IQueryHandler<GetServiceOrderQuery, ServiceOrderDto>, GetServiceOrderQueryHandler>();
         services.AddScoped<IQueryHandler<ListServiceOrdersQuery, IReadOnlyCollection<ServiceOrderDto>>, ListServiceOrdersQueryHandler>();
         services.AddScoped<IQueryHandler<ListUsersQuery, IReadOnlyCollection<UserDto>>, ListUsersQueryHandler>();

@@ -11,6 +11,7 @@ public static class CustomerMappingExtensions
         customer.Document,
         customer.Phone,
         customer.Email,
+        customer.IsActive,
         customer.CreatedAt,
         customer.UpdatedAt,
         customer.CreatedByName,
