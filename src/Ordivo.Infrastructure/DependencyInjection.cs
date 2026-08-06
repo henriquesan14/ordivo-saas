@@ -44,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<IAuthSessionRepository, AuthSessionRepository>();
         services.AddScoped<IIdentityTokenRepository, IdentityTokenRepository>();
         services.AddScoped<ICommercialRepository, CommercialRepository>();
+        services.AddScoped<IImpersonationRepository, ImpersonationRepository>();
         services.AddOptions<PaymentOptions>().Bind(configuration.GetSection(PaymentOptions.SectionName));
         services.AddHttpClient<IPaymentGateway, HttpPaymentGateway>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();

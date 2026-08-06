@@ -20,6 +20,7 @@ export class Api {
 }
 
 let csrf$: Observable<{token:string}> | undefined;
+export function resetCsrfToken(){ csrf$ = undefined; }
 export const apiInterceptor: HttpInterceptorFn = (request, next) => {
   const http = inject(HttpClient); const unsafe = !['GET','HEAD','OPTIONS'].includes(request.method);
   const send = (token?: string) => next(request.clone({ withCredentials: true, setHeaders: token ? { 'X-CSRF-TOKEN': token } : {} })).pipe(

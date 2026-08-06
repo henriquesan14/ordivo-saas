@@ -9,6 +9,7 @@ using Ordivo.Application.Platform.Tenants;
 using Ordivo.Application.Platform.Tenants.ListTenants;
 using Ordivo.Application.Platform.Tenants.CreateTenant;
 using Ordivo.Application.Platform.Tenants.ManageTenant;
+using Ordivo.Application.Platform.Impersonation;
 using Ordivo.SharedKernel.Messaging;
 
 namespace Ordivo.Api.Endpoints;
@@ -90,6 +91,14 @@ public sealed class PlatformEndpoints : ICarterModule
             (await handler.Handle(new ChangePlatformTenantStatusCommand(id, request.IsActive), ct)).ToHttpResult())
             .WithTags("Platform")
             .RequireAuthorization("PlatformAdmin");
+
+        app.MapPost("/api/platform/impersonations", async (StartImpersonationCommand command, ICommandHandler<StartImpersonationCommand, ImpersonationDto> handler, HttpContext context, CancellationToken ct) =>
+            (await handler.Handle(command, ct)).ToImpersonationCookieResult(context))
+            .WithTags("Platform Impersonation").RequireAuthorization("PlatformAdmin");
+
+        app.MapPost("/api/impersonation/end", async (ICommandHandler<EndImpersonationCommand, EndImpersonationDto> handler, HttpContext context, CancellationToken ct) =>
+            (await handler.Handle(new EndImpersonationCommand(), ct)).ToRestorePlatformCookieResult(context))
+            .WithTags("Platform Impersonation").RequireAuthorization("Impersonating");
     }
 
     private sealed record UpdatePlatformTenantRequest(string Name);

@@ -48,6 +48,14 @@ public static class AuthenticationExtensions
                         var tenants = context.HttpContext.RequestServices.GetRequiredService<IPlatformTenantRepository>();
                         var tenant = await tenants.GetAsync(tenantId, context.HttpContext.RequestAborted);
                         if (tenant is null || !tenant.IsActive) context.Fail("Tenant is suspended.");
+                        var impersonationClaim = context.Principal?.FindFirst("impersonation_session_id")?.Value;
+                        if (impersonationClaim is not null)
+                        {
+                            if (!Guid.TryParse(impersonationClaim, out var sessionId)) { context.Fail("Invalid impersonation session."); return; }
+                            var repository = context.HttpContext.RequestServices.GetRequiredService<IImpersonationRepository>();
+                            var session = await repository.GetSessionAsync(sessionId, context.HttpContext.RequestAborted);
+                            if (session is null || !session.IsActive(TimeProvider.System.GetUtcNow())) context.Fail("Impersonation session expired.");
+                        }
                     }
                 };
                 options.TokenValidationParameters = new TokenValidationParameters
@@ -75,6 +83,7 @@ public static class AuthenticationExtensions
                 .RequireRole("Owner"));
             options.AddPolicy("PlatformAdmin", policy =>
                 policy.RequireClaim("platform_role", "PlatformAdmin"));
+            options.AddPolicy("Impersonating", policy => policy.RequireClaim("impersonation_session_id"));
         });
         return services;
     }

@@ -30,6 +30,9 @@ internal sealed class AuditableEntityInterceptor(TimeProvider timeProvider, IUse
         var userName = userContext.IsAuthenticated && !string.IsNullOrWhiteSpace(userContext.Name)
             ? userContext.Name
             : "System";
+        if (userContext.IsImpersonating && !string.IsNullOrWhiteSpace(userContext.ImpersonatorName))
+            userName = $"{userName} (impersonated by {userContext.ImpersonatorName})";
+        if (userName.Length > 120) userName = userName[..120];
 
         foreach (var entry in context.ChangeTracker.Entries<IAuditableEntity>())
         {

@@ -76,6 +76,7 @@ app.UseHttpsRedirection();
 app.UseCors(SecurityExtensions.CorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<ImpersonationProtectionMiddleware>();
 app.UseRateLimiter();
 app.UseApiCsrfProtection();
 app.UseMiddleware<IdempotencyMiddleware>();

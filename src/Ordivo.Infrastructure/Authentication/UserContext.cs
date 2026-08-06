@@ -18,4 +18,8 @@ internal sealed class UserContext(IHttpContextAccessor httpContextAccessor) : IU
     public string? Email => Principal?.FindFirst(JwtRegisteredClaimNames.Email)?.Value;
     public string? Role => Principal?.FindFirst("role")?.Value;
     public string? PlatformRole => Principal?.FindFirst("platform_role")?.Value;
+    public bool IsImpersonating => Principal?.FindFirst("impersonation_session_id") is not null;
+    public Guid? ImpersonatorUserId => Guid.TryParse(Principal?.FindFirst("impersonator_user_id")?.Value, out var id) ? id : null;
+    public Guid? ImpersonationSessionId => Guid.TryParse(Principal?.FindFirst("impersonation_session_id")?.Value, out var id) ? id : null;
+    public string? ImpersonatorName => Principal?.FindFirst("impersonator_name")?.Value;
 }

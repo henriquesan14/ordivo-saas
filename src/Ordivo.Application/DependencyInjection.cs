@@ -40,6 +40,7 @@ using Ordivo.Application.Users.ChangeUserStatus;
 using Ordivo.Application.Users.ChangeMyPassword;
 using Ordivo.Application.Users.InviteUser;
 using Ordivo.Application.Commercial;
+using Ordivo.Application.Platform.Impersonation;
 using Ordivo.SharedKernel.Messaging;
 namespace Ordivo.Application;
 public static class DependencyInjection
@@ -82,6 +83,8 @@ public static class DependencyInjection
         services.AddCommandHandler<AssignSubscriptionCommand, SubscriptionDto, AssignSubscriptionHandler>();
         services.AddCommandHandler<ProcessPaymentWebhookCommand, bool, ProcessPaymentWebhookHandler>();
         services.AddCommandHandler<CreateCheckoutCommand, Ordivo.Application.Abstractions.Payments.CheckoutResult, CreateCheckoutHandler>();
+        services.AddCommandHandler<StartImpersonationCommand, ImpersonationDto, StartImpersonationHandler>();
+        services.AddCommandHandler<EndImpersonationCommand, EndImpersonationDto, EndImpersonationHandler>();
 
         services.AddScoped<IQueryHandler<ListPlatformTenantsQuery, IReadOnlyCollection<PlatformTenantDto>>, ListPlatformTenantsQueryHandler>();
         services.AddScoped<IQueryHandler<GetPlatformTenantByIdQuery, PlatformTenantDto>, GetPlatformTenantByIdQueryHandler>();

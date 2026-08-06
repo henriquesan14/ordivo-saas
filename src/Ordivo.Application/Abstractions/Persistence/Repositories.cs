@@ -5,6 +5,7 @@ using Ordivo.Domain.Tenants;
 using Ordivo.Domain.PlatformUsers;
 using Ordivo.Domain.Authentication;
 using Ordivo.Domain.Commercial;
+using Ordivo.Domain.Impersonation;
 namespace Ordivo.Application.Abstractions.Persistence;
 public interface IUnitOfWork
 {
@@ -89,4 +90,10 @@ public interface ICommercialRepository
     Task<IReadOnlyCollection<BillingInvoice>> ListInvoicesAsync(Guid tenantId, CancellationToken ct);
     Task<BillingInvoice?> GetInvoiceByGatewayIdAsync(string gatewayInvoiceId, CancellationToken ct);
     Task AddInvoiceAsync(BillingInvoice invoice, CancellationToken ct);
+}
+public interface IImpersonationRepository
+{
+    Task<User?> GetTargetUserAsync(Guid tenantId, Guid? userId, CancellationToken ct);
+    Task<ImpersonationSession?> GetSessionAsync(Guid id, CancellationToken ct);
+    Task AddAsync(ImpersonationSession session, CancellationToken ct);
 }

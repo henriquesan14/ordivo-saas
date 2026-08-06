@@ -244,3 +244,9 @@ O módulo comercial mantém planos, uma assinatura por tenant, trial, faturas e 
 Os limites são aplicados na criação de usuários, clientes e ordens de serviço. Ordens são contadas dentro do período comercial corrente. Trial expirado e assinaturas `PastDue`, `Suspended` ou `Canceled` recebem HTTP `402` nas rotas operacionais; autenticação e consulta de cobrança continuam disponíveis para recuperação da conta.
 
 Configure `PAYMENTS_API_BASE_URL`, `PAYMENTS_API_KEY` e `PAYMENTS_WEBHOOK_SECRET` no `.env`. O adapter envia `POST /checkouts` ao gateway e espera `{ "checkoutId": "...", "checkoutUrl": "..." }`. Webhooks usam o corpo JSON bruto, o header `X-Webhook-Signature` com HMAC-SHA256 hexadecimal e aceitam os tipos `invoice.paid`, `invoice.failed`, `subscription.suspended` e `subscription.canceled`. O par gateway/eventId é único, impedindo processamento duplicado.
+
+## Impersonação de suporte
+
+O PlatformAdmin pode iniciar um acesso temporário pelo botão `Acessar` em `/platform/tenants`. O motivo é obrigatório, a sessão dura 15 minutos e seleciona por padrão o Owner ativo e verificado do tenant. O token contém os identificadores do administrador, usuário-alvo e sessão de impersonação.
+
+Durante o acesso, o frontend mostra um banner permanente e oferece encerramento explícito. Alterações de cobrança, tenant, usuários, senha, sessões e refresh são bloqueadas. Operações permitidas registram o usuário-alvo e o PlatformAdmin nos campos de auditoria. Ao encerrar, um novo token global é emitido e o painel PlatformAdmin é restaurado.

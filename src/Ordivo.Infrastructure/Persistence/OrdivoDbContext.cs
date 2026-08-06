@@ -9,6 +9,7 @@ using Ordivo.Domain.PlatformUsers;
 using Ordivo.SharedKernel.Domain;
 using Ordivo.Domain.Authentication;
 using Ordivo.Domain.Commercial;
+using Ordivo.Domain.Impersonation;
 
 namespace Ordivo.Infrastructure.Persistence;
 
@@ -27,6 +28,7 @@ public sealed class OrdivoDbContext(DbContextOptions<OrdivoDbContext> options, I
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
     public DbSet<BillingInvoice> BillingInvoices => Set<BillingInvoice>();
     public DbSet<PaymentWebhookEvent> PaymentWebhookEvents => Set<PaymentWebhookEvent>();
+    public DbSet<ImpersonationSession> ImpersonationSessions => Set<ImpersonationSession>();
     public Guid CurrentTenantId => userContext.IsAuthenticated ? userContext.TenantId : Guid.Empty;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

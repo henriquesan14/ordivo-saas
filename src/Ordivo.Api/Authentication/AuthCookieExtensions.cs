@@ -2,11 +2,24 @@ using Microsoft.Extensions.Options;
 using Ordivo.Application.Authentication;
 using Ordivo.Application.Platform.Authentication;
 using Ordivo.SharedKernel.Results;
+using Ordivo.Application.Platform.Impersonation;
 
 namespace Ordivo.Api.Authentication;
 
 public static class AuthCookieExtensions
 {
+    public static IResult ToImpersonationCookieResult(this Result<ImpersonationDto> result, HttpContext context)
+    {
+        if (!result.IsSuccess) return ToErrorResult(result.Error);
+        SetAccessCookie(context, result.Value.AccessToken, result.Value.ExpiresAt);
+        return Results.Ok(new { result.Value.SessionId, result.Value.TenantId, result.Value.UserId, result.Value.UserName, result.Value.UserEmail, result.Value.Role, result.Value.Reason, result.Value.ExpiresAt });
+    }
+    public static IResult ToRestorePlatformCookieResult(this Result<EndImpersonationDto> result, HttpContext context)
+    {
+        if (!result.IsSuccess) return ToErrorResult(result.Error);
+        SetAccessCookie(context, result.Value.AccessToken, result.Value.ExpiresAt);
+        return Results.NoContent();
+    }
     public static IResult ToAuthCookieResult(this Result<AuthDto> result, HttpContext context) =>
         result.IsSuccess
             ? SignIn(context, result.Value.AccessToken, result.Value.ExpiresAt,
@@ -62,6 +75,11 @@ public static class AuthCookieExtensions
             refreshToken,
             CreateCookieOptions(settings, refreshExpiresAt, "/api"));
         return Results.Ok(response);
+    }
+    private static void SetAccessCookie(HttpContext context, string token, DateTimeOffset expiresAt)
+    {
+        var settings = context.RequestServices.GetRequiredService<IOptions<AuthCookieOptions>>().Value;
+        context.Response.Cookies.Append(settings.Name, token, CreateCookieOptions(settings, expiresAt));
     }
 
     private static CookieOptions CreateCookieOptions(

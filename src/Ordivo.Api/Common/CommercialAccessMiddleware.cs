@@ -29,6 +29,6 @@ public sealed class CommercialAccessMiddleware(RequestDelegate next)
         }
         await next(context);
     }
-    private static bool IsExcluded(PathString path) => path.StartsWithSegments("/api/auth") || path.StartsWithSegments("/api/platform") || path.StartsWithSegments("/api/billing") || path.StartsWithSegments("/health");
+    private static bool IsExcluded(PathString path) => path.StartsWithSegments("/api/auth") || path.StartsWithSegments("/api/platform") || path.StartsWithSegments("/api/impersonation") || path.StartsWithSegments("/api/billing") || path.StartsWithSegments("/health");
     private static Task WriteProblem(HttpContext context, int status, string title, string detail) { context.Response.StatusCode = status; return context.Response.WriteAsJsonAsync(new { type = $"https://httpstatuses.com/{status}", title, status, detail, instance = context.Request.Path.Value, traceId = context.TraceIdentifier }); }
 }

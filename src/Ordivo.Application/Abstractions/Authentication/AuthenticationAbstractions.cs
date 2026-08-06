@@ -13,6 +13,7 @@ public interface IGenerateToken
 {
     AccessToken GenerateToken(User user);
     AccessToken GenerateToken(PlatformUser user);
+    AccessToken GenerateImpersonationToken(User user, Guid platformUserId, string platformUserName, Guid sessionId, DateTimeOffset expiresAt);
 }
 
 public sealed record AccessToken(string Token, DateTimeOffset ExpiresAt);
@@ -49,4 +50,8 @@ public interface IUserContext
     string? Email { get; }
     string? Role { get; }
     string? PlatformRole { get; }
+    bool IsImpersonating { get; }
+    Guid? ImpersonatorUserId { get; }
+    Guid? ImpersonationSessionId { get; }
+    string? ImpersonatorName { get; }
 }
