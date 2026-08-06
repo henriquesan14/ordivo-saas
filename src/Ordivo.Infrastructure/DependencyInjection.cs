@@ -11,6 +11,8 @@ using Ordivo.Infrastructure.Persistence.Repositories;
 using Ordivo.SharedKernel.Domain;
 using Ordivo.Infrastructure.Health;
 using Ordivo.Infrastructure.BackgroundJobs;
+using Ordivo.Infrastructure.Payments;
+using Ordivo.Application.Abstractions.Payments;
 
 namespace Ordivo.Infrastructure;
 
@@ -41,6 +43,9 @@ public static class DependencyInjection
         services.AddScoped<IPlatformTenantRepository, PlatformTenantRepository>();
         services.AddScoped<IAuthSessionRepository, AuthSessionRepository>();
         services.AddScoped<IIdentityTokenRepository, IdentityTokenRepository>();
+        services.AddScoped<ICommercialRepository, CommercialRepository>();
+        services.AddOptions<PaymentOptions>().Bind(configuration.GetSection(PaymentOptions.SectionName));
+        services.AddHttpClient<IPaymentGateway, HttpPaymentGateway>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IGenerateToken, JwtTokenGenerator>();
         services.AddOptions<RefreshTokenOptions>()

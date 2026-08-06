@@ -217,3 +217,20 @@ Emails são gravados em `outbox_messages` na mesma transação da alteração de
 Nas operações autenticadas de escrita, envie um `Idempotency-Key` único. A primeira resposta `2xx` é persistida por 24 horas e requisições repetidas no mesmo usuário, tenant, método e rota recebem a mesma resposta com o header `Idempotency-Replayed: true`. As rotas de autenticação não usam esse middleware porque possuem semântica própria de sessão e rotação de token.
 
 Agregados editáveis possuem uma coluna `Version` tratada como token de concorrência otimista. Uma atualização concorrente retorna HTTP `409 Conflict`. Sessões expiradas há mais de sete dias são removidas na inicialização e, depois, a cada hora.
+
+## Comercial e cobrança
+
+O módulo comercial mantém planos, uma assinatura por tenant, trial, faturas e eventos recebidos do gateway. Na primeira inicialização é criado o plano `Pro` configurado em `Commercial:DefaultPlan`; novos tenants recebem automaticamente sua assinatura e o período de trial desse plano.
+
+- `GET /api/plans`: catálogo público de planos ativos.
+- `GET|POST /api/platform/plans`: consulta e criação pelo PlatformAdmin.
+- `PUT /api/platform/plans/{id}` e `PATCH /api/platform/plans/{id}/status`: edição e ativação do plano.
+- `PUT /api/platform/tenants/{tenantId}/subscription`: atribui ou troca o plano do tenant.
+- `GET /api/billing/subscription`: assinatura, consumo e limites atuais.
+- `GET /api/billing/invoices`: histórico de cobranças do tenant.
+- `POST /api/billing/checkout`: cria uma sessão de checkout no gateway configurado.
+- `POST /api/webhooks/payments/{gateway}`: recebe eventos assinados e idempotentes do gateway.
+
+Os limites são aplicados na criação de usuários, clientes e ordens de serviço. Ordens são contadas dentro do período comercial corrente. Trial expirado e assinaturas `PastDue`, `Suspended` ou `Canceled` recebem HTTP `402` nas rotas operacionais; autenticação e consulta de cobrança continuam disponíveis para recuperação da conta.
+
+Configure `PAYMENTS_API_BASE_URL`, `PAYMENTS_API_KEY` e `PAYMENTS_WEBHOOK_SECRET` no `.env`. O adapter envia `POST /checkouts` ao gateway e espera `{ "checkoutId": "...", "checkoutUrl": "..." }`. Webhooks usam o corpo JSON bruto, o header `X-Webhook-Signature` com HMAC-SHA256 hexadecimal e aceitam os tipos `invoice.paid`, `invoice.failed`, `subscription.suspended` e `subscription.canceled`. O par gateway/eventId é único, impedindo processamento duplicado.

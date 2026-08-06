@@ -3,6 +3,7 @@ using Ordivo.Application.Abstractions.Persistence;
 using Ordivo.Domain.Users;
 using Ordivo.Domain.Tenants;
 using Ordivo.Domain.Authentication;
+using Ordivo.Domain.Commercial;
 using Ordivo.SharedKernel.Messaging;
 using Ordivo.SharedKernel.Results;
 
@@ -18,6 +19,8 @@ public sealed class RegisterCommandHandler(
     IIdentityTokenGenerator tokenGenerator,
     IIdentityTokenRepository identityTokens,
     IIdentityEmailSender emailSender,
+    ICommercialRepository commercial,
+    TimeProvider clock,
     IUnitOfWork unitOfWork) : ICommandHandler<RegisterCommand, RegistrationDto>
 {
     public async Task<Result<RegistrationDto>> Handle(RegisterCommand command, CancellationToken ct)
@@ -31,6 +34,8 @@ public sealed class RegisterCommandHandler(
         var verificationToken = tokenGenerator.Generate(TimeSpan.FromHours(24));
         await tenants.AddAsync(tenant, ct);
         await users.AddAsync(user, ct);
+        var defaultPlan = (await commercial.ListPlansAsync(true, ct)).FirstOrDefault();
+        if (defaultPlan is not null) await commercial.AddSubscriptionAsync(Subscription.Start(tenant.Id, defaultPlan, clock.GetUtcNow()), ct);
         await identityTokens.AddAsync(IdentityToken.Create(
             user.Id, tenant.Id, user.Email, IdentityTokenType.EmailVerification,
             verificationToken.Hash, verificationToken.ExpiresAt), ct);

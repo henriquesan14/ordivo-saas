@@ -77,7 +77,7 @@ public static class SecurityExtensions
     public static IApplicationBuilder UseApiCsrfProtection(this IApplicationBuilder app) =>
         app.Use(async (context, next) =>
         {
-            if (context.Request.Path.StartsWithSegments("/api") && IsUnsafeMethod(context.Request.Method))
+            if (context.Request.Path.StartsWithSegments("/api") && !context.Request.Path.StartsWithSegments("/api/webhooks") && IsUnsafeMethod(context.Request.Method))
             {
                 var antiforgery = context.RequestServices.GetRequiredService<IAntiforgery>();
                 await antiforgery.ValidateRequestAsync(context);

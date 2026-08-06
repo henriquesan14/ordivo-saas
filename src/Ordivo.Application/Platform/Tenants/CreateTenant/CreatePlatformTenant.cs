@@ -2,6 +2,7 @@ using Ordivo.Application.Abstractions.Authentication;
 using Ordivo.Application.Abstractions.Persistence;
 using Ordivo.Domain.Tenants;
 using Ordivo.Domain.Users;
+using Ordivo.Domain.Commercial;
 using Ordivo.SharedKernel.Messaging;
 using Ordivo.SharedKernel.Results;
 
@@ -28,6 +29,8 @@ public sealed class CreatePlatformTenantCommandHandler(
     ITenantRepository tenants,
     IUserRepository users,
     IPasswordHasher passwordHasher,
+    ICommercialRepository commercial,
+    TimeProvider clock,
     IUnitOfWork unitOfWork)
     : ICommandHandler<CreatePlatformTenantCommand, CreatePlatformTenantDto>
 {
@@ -49,6 +52,8 @@ public sealed class CreatePlatformTenantCommandHandler(
 
         await tenants.AddAsync(tenant, ct);
         await users.AddAsync(owner, ct);
+        var defaultPlan = (await commercial.ListPlansAsync(true, ct)).FirstOrDefault();
+        if (defaultPlan is not null) await commercial.AddSubscriptionAsync(Subscription.Start(tenant.Id, defaultPlan, clock.GetUtcNow()), ct);
         await unitOfWork.SaveChangesAsync(ct);
 
         return Result.Success(new CreatePlatformTenantDto(

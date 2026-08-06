@@ -17,6 +17,7 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using System.Net;
+using Ordivo.Infrastructure.Payments;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
@@ -68,6 +69,7 @@ if (app.Configuration.GetValue<bool>("Database:ApplyMigrations"))
     await dbContext.Database.MigrateAsync();
 }
 
+await app.Services.SeedDefaultPlanAsync(app.Configuration);
 await app.Services.SeedPlatformAdminAsync(app.Configuration);
 
 app.UseHttpsRedirection();
@@ -77,6 +79,7 @@ app.UseAuthorization();
 app.UseRateLimiter();
 app.UseApiCsrfProtection();
 app.UseMiddleware<IdempotencyMiddleware>();
+app.UseMiddleware<CommercialAccessMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {

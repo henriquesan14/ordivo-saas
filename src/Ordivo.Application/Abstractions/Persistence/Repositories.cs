@@ -4,6 +4,7 @@ using Ordivo.Domain.Users;
 using Ordivo.Domain.Tenants;
 using Ordivo.Domain.PlatformUsers;
 using Ordivo.Domain.Authentication;
+using Ordivo.Domain.Commercial;
 namespace Ordivo.Application.Abstractions.Persistence;
 public interface IUnitOfWork
 {
@@ -71,4 +72,21 @@ public interface IPlatformTenantRepository
     Task<IReadOnlyCollection<Tenant>> ListAsync(CancellationToken ct);
     Task<Tenant?> GetAsync(Guid id, CancellationToken ct);
     Task<Tenant?> GetBySlugAsync(string slug, CancellationToken ct);
+}
+public interface ICommercialRepository
+{
+    Task<IReadOnlyCollection<Plan>> ListPlansAsync(bool activeOnly, CancellationToken ct);
+    Task<Plan?> GetPlanAsync(Guid id, CancellationToken ct);
+    Task<bool> PlanCodeExistsAsync(string code, Guid? excludingId, CancellationToken ct);
+    Task AddPlanAsync(Plan plan, CancellationToken ct);
+    Task<Subscription?> GetSubscriptionAsync(Guid tenantId, bool tracked, CancellationToken ct);
+    Task AddSubscriptionAsync(Subscription subscription, CancellationToken ct);
+    Task<int> CountUsersAsync(Guid tenantId, CancellationToken ct);
+    Task<int> CountCustomersAsync(Guid tenantId, CancellationToken ct);
+    Task<int> CountServiceOrdersAsync(Guid tenantId, DateTimeOffset periodStart, CancellationToken ct);
+    Task<bool> WebhookExistsAsync(string gateway, string externalEventId, CancellationToken ct);
+    Task AddWebhookAsync(PaymentWebhookEvent webhook, CancellationToken ct);
+    Task<IReadOnlyCollection<BillingInvoice>> ListInvoicesAsync(Guid tenantId, CancellationToken ct);
+    Task<BillingInvoice?> GetInvoiceByGatewayIdAsync(string gatewayInvoiceId, CancellationToken ct);
+    Task AddInvoiceAsync(BillingInvoice invoice, CancellationToken ct);
 }

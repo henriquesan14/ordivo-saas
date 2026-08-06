@@ -39,6 +39,7 @@ using Ordivo.Application.Users.ChangeUserRole;
 using Ordivo.Application.Users.ChangeUserStatus;
 using Ordivo.Application.Users.ChangeMyPassword;
 using Ordivo.Application.Users.InviteUser;
+using Ordivo.Application.Commercial;
 using Ordivo.SharedKernel.Messaging;
 namespace Ordivo.Application;
 public static class DependencyInjection
@@ -76,6 +77,11 @@ public static class DependencyInjection
         services.AddCommandHandler<ChangeUserStatusCommand, UserDto, ChangeUserStatusCommandHandler>();
         services.AddCommandHandler<ChangeMyPasswordCommand, bool, ChangeMyPasswordCommandHandler>();
         services.AddCommandHandler<InviteUserCommand, UserDto, InviteUserCommandHandler>();
+        services.AddCommandHandler<UpsertPlanCommand, PlanDto, UpsertPlanCommandHandler>();
+        services.AddCommandHandler<ChangePlanStatusCommand, PlanDto, ChangePlanStatusHandler>();
+        services.AddCommandHandler<AssignSubscriptionCommand, SubscriptionDto, AssignSubscriptionHandler>();
+        services.AddCommandHandler<ProcessPaymentWebhookCommand, bool, ProcessPaymentWebhookHandler>();
+        services.AddCommandHandler<CreateCheckoutCommand, Ordivo.Application.Abstractions.Payments.CheckoutResult, CreateCheckoutHandler>();
 
         services.AddScoped<IQueryHandler<ListPlatformTenantsQuery, IReadOnlyCollection<PlatformTenantDto>>, ListPlatformTenantsQueryHandler>();
         services.AddScoped<IQueryHandler<GetPlatformTenantByIdQuery, PlatformTenantDto>, GetPlatformTenantByIdQueryHandler>();
@@ -88,6 +94,9 @@ public static class DependencyInjection
         services.AddScoped<IQueryHandler<ListServiceOrdersQuery, PagedResult<ServiceOrderDto>>, ListServiceOrdersQueryHandler>();
         services.AddScoped<IQueryHandler<ListUsersQuery, IReadOnlyCollection<UserDto>>, ListUsersQueryHandler>();
         services.AddScoped<IQueryHandler<GetUserQuery, UserDto>, GetUserQueryHandler>();
+        services.AddScoped<IQueryHandler<ListPlansQuery, IReadOnlyCollection<PlanDto>>, ListPlansQueryHandler>();
+        services.AddScoped<IQueryHandler<GetCurrentSubscriptionQuery, SubscriptionDto>, GetCurrentSubscriptionHandler>();
+        services.AddScoped<IQueryHandler<ListInvoicesQuery, IReadOnlyCollection<InvoiceDto>>, ListInvoicesHandler>();
 
         return services;
     }
