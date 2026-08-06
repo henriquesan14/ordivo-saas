@@ -2,10 +2,9 @@ using Ordivo.Domain.ServiceOrders;
 namespace Ordivo.Tests;
 public sealed class ServiceOrderTests
 {
-    [Fact] public void Complete_sets_completion_date()
-    { var order = ServiceOrder.Create(Guid.NewGuid(), Guid.NewGuid(), "Repair", "Replace display", 250m); order.ChangeStatus(ServiceOrderStatus.Completed); Assert.Equal(ServiceOrderStatus.Completed, order.Status); Assert.NotNull(order.CompletedAt); }
-    [Fact] public void Closed_order_cannot_change_status()
-    { var order = ServiceOrder.Create(Guid.NewGuid(), Guid.NewGuid(), "Repair", "Replace display", 250m); order.ChangeStatus(ServiceOrderStatus.Cancelled); Assert.Throws<InvalidOperationException>(() => order.ChangeStatus(ServiceOrderStatus.Open)); }
-    [Fact] public void Create_raises_domain_event()
-    { var order = ServiceOrder.Create(Guid.NewGuid(), Guid.NewGuid(), "Repair", "Replace display", 250m); Assert.Single(order.DomainEvents); Assert.IsType<ServiceOrderCreatedDomainEvent>(order.DomainEvents.Single()); }
+    private static ServiceOrder Create() => ServiceOrder.Create(Guid.NewGuid(),123,Guid.NewGuid(),"Repair","Replace display",250m,null,null,"Tester",DateTimeOffset.UtcNow);
+    [Fact] public void Complete_sets_completion_and_history(){var order=Create();order.ChangeStatus(ServiceOrderStatus.Completed,"Tester",DateTimeOffset.UtcNow,"Done");Assert.NotNull(order.CompletedAt);Assert.Equal(2,order.StatusHistory.Count);}
+    [Fact] public void Closed_order_cannot_change(){var order=Create();order.ChangeStatus(ServiceOrderStatus.Cancelled,"Tester",DateTimeOffset.UtcNow);Assert.Throws<InvalidOperationException>(()=>order.ChangeStatus(ServiceOrderStatus.Open,"Tester",DateTimeOffset.UtcNow));}
+    [Fact] public void Create_generates_friendly_number(){var order=Create();Assert.Equal($"OS-{DateTimeOffset.UtcNow.Year}-000123",order.Number);Assert.Single(order.DomainEvents);}
+    [Fact] public void Comments_and_attachments_are_added(){var order=Create();var user=Guid.NewGuid();order.AddComment(user,"Tester","Comment",DateTimeOffset.UtcNow);order.AddAttachment(user,"Tester","file.pdf","application/pdf",10,"orders/file.pdf",DateTimeOffset.UtcNow);Assert.Single(order.Comments);Assert.Single(order.Attachments);}
 }

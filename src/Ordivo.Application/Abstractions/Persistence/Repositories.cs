@@ -21,9 +21,13 @@ public interface ICustomerRepository
 }
 public interface IServiceOrderRepository
 {
-    Task<IReadOnlyCollection<ServiceOrder>> ListAsync(CancellationToken ct);
+    Task<(IReadOnlyCollection<ServiceOrder> Items, int TotalCount)> ListAsync(
+        string? search, ServiceOrderStatus? status, Guid? customerId, Guid? assignedUserId,
+        DateTimeOffset? scheduledFrom, DateTimeOffset? scheduledTo,
+        int page, int pageSize, string sortBy, bool descending, CancellationToken ct);
     Task<ServiceOrder?> GetAsync(Guid id, CancellationToken ct);
     Task AddAsync(ServiceOrder order, CancellationToken ct);
+    Task<long> NextSequenceAsync(CancellationToken ct);
 }
 public interface IUserRepository
 {

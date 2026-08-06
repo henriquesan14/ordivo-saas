@@ -116,6 +116,18 @@ O registro recebe `tenantName`, `name`, `email` e `password`. Ele cria o tenant 
 
 A listagem aceita `name`, `document`, `email`, `phone`, `includeInactive`, `page`, `pageSize`, `sortBy` e `descending`. O tamanho máximo de página é 100; clientes inativos são omitidos por padrão. Os campos de ordenação são `name`, `document`, `email`, `phone`, `createdAt` e `updatedAt`.
 
+## Ordens de serviço
+
+- `POST /api/service-orders`: cria uma ordem numerada como `OS-2026-000123`.
+- `PUT /api/service-orders/{id}`: atualiza cliente, título, descrição, preço, responsável e agendamento.
+- `PATCH /api/service-orders/{id}/status`: altera o status, aceita uma observação e grava o histórico.
+- `POST /api/service-orders/{id}/comments`: adiciona comentário identificado pelo usuário autenticado.
+- `POST /api/service-orders/{id}/attachments`: registra `fileName`, `contentType`, `size` e `storageKey` de um arquivo armazenado externamente.
+
+A listagem paginada aceita `search`, `status`, `customerId`, `assignedUserId`, `scheduledFrom`, `scheduledTo`, `page`, `pageSize`, `sortBy` e `descending`. A busca textual cobre número, título e descrição. Os campos de ordenação são `number`, `title`, `status`, `scheduledAt`, `price` e `createdAt`.
+
+O PostgreSQL armazena somente metadados de anexos. O conteúdo deve ser enviado para um storage de arquivos; `storageKey` identifica o objeto no disco, S3, Azure Blob ou provedor equivalente.
+
 ## Multi-tenancy
 
 - O JWT contém as claims `sub` e `tenant_id`.
