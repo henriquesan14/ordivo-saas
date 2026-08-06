@@ -42,8 +42,8 @@ public sealed class InviteUserCommandHandler(
         await users.AddAsync(user, ct);
         await tokens.AddAsync(IdentityToken.Create(user.Id, user.TenantId, user.Email,
             IdentityTokenType.UserInvitation, generated.Hash, generated.ExpiresAt), ct);
-        await unitOfWork.SaveChangesAsync(ct);
         await emailSender.SendUserInvitationAsync(user.Email, user.Name, generated.Token, ct);
+        await unitOfWork.SaveChangesAsync(ct);
         return Result.Success(user.ToDto());
     }
 }

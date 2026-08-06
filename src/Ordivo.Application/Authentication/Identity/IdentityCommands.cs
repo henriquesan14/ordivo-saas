@@ -89,8 +89,8 @@ public sealed class ResendVerificationCommandHandler(
         var generated = tokenGenerator.Generate(TimeSpan.FromHours(24));
         await tokens.AddAsync(IdentityToken.Create(user.Id, user.TenantId, user.Email,
             IdentityTokenType.EmailVerification, generated.Hash, generated.ExpiresAt), ct);
-        await unitOfWork.SaveChangesAsync(ct);
         await emailSender.SendEmailVerificationAsync(user.Email, user.Name, generated.Token, ct);
+        await unitOfWork.SaveChangesAsync(ct);
         return Result.Success(true);
     }
 }
@@ -115,8 +115,8 @@ public sealed class ForgotPasswordCommandHandler(
         var generated = tokenGenerator.Generate(TimeSpan.FromHours(1));
         await tokens.AddAsync(IdentityToken.Create(user.Id, user.TenantId, user.Email,
             IdentityTokenType.PasswordReset, generated.Hash, generated.ExpiresAt), ct);
-        await unitOfWork.SaveChangesAsync(ct);
         await emailSender.SendPasswordResetAsync(user.Email, user.Name, generated.Token, ct);
+        await unitOfWork.SaveChangesAsync(ct);
         return Result.Success(true);
     }
 }

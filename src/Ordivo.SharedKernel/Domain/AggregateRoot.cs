@@ -20,6 +20,7 @@ public abstract class AggregateRoot<TId> : Entity<TId>, IAuditableEntity where T
     public DateTimeOffset? UpdatedAt { get; protected set; }
     public string CreatedByName { get; protected set; } = string.Empty;
     public string? UpdatedByName { get; protected set; }
+    public Guid Version { get; protected set; } = Guid.NewGuid();
     protected void Raise(IDomainEvent domainEvent) => _domainEvents.Add(domainEvent);
     public void ClearDomainEvents() => _domainEvents.Clear();
 }

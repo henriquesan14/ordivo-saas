@@ -34,8 +34,8 @@ public sealed class RegisterCommandHandler(
         await identityTokens.AddAsync(IdentityToken.Create(
             user.Id, tenant.Id, user.Email, IdentityTokenType.EmailVerification,
             verificationToken.Hash, verificationToken.ExpiresAt), ct);
-        await unitOfWork.SaveChangesAsync(ct);
         await emailSender.SendEmailVerificationAsync(user.Email, user.Name, verificationToken.Token, ct);
+        await unitOfWork.SaveChangesAsync(ct);
         return Result.Success(new RegistrationDto(user.Id, tenant.Id, user.Email, true));
     }
 }

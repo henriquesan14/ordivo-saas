@@ -9,6 +9,8 @@ using Ordivo.Infrastructure.Persistence;
 using Ordivo.Infrastructure.Persistence.Interceptors;
 using Ordivo.Infrastructure.Persistence.Repositories;
 using Ordivo.SharedKernel.Domain;
+using Ordivo.Infrastructure.Health;
+using Ordivo.Infrastructure.BackgroundJobs;
 
 namespace Ordivo.Infrastructure;
 
@@ -23,10 +25,12 @@ public static class DependencyInjection
         services.AddScoped<AuditableEntityInterceptor>();
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
         services.AddScoped<DispatchDomainEventsInterceptor>();
+        services.AddScoped<OutboxInterceptor>();
         services.AddDbContext<OrdivoDbContext>((provider, options) => options
             .UseNpgsql(connectionString)
             .AddInterceptors(
                 provider.GetRequiredService<AuditableEntityInterceptor>(),
+                provider.GetRequiredService<OutboxInterceptor>(),
                 provider.GetRequiredService<DispatchDomainEventsInterceptor>()));
         services.AddScoped<IUnitOfWork>(provider => provider.GetRequiredService<OrdivoDbContext>());
         services.AddScoped<ICustomerRepository, CustomerRepository>();
@@ -49,6 +53,9 @@ public static class DependencyInjection
         services.AddScoped<IIdentityEmailSender, IdentityEmailSender>();
         services.AddScoped<IUserContext, UserContext>();
         services.AddHttpContextAccessor();
+        services.AddHealthChecks().AddCheck<PostgresHealthCheck>("postgres", tags: ["ready"]);
+        services.AddHostedService<OutboxWorker>();
+        services.AddHostedService<SessionCleanupWorker>();
         return services;
     }
 }

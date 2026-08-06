@@ -203,3 +203,17 @@ Em desenvolvimento, `appsettings.Development.json` contém uma credencial conhec
 Ao suspender um tenant, todas as suas sessões ativas são revogadas. Login, refresh token, tokens JWT já emitidos e fluxos de identidade são bloqueados enquanto o tenant permanecer inativo. A reativação permite novos logins, mas não restaura sessões revogadas.
 
 Não existe registro público de administrador global. O bypass de filtros ocorre somente no `IPlatformTenantRepository`; repositórios normais continuam tenant-scoped.
+
+## Confiabilidade e observabilidade
+
+- `GET /health/live` verifica somente se o processo está ativo.
+- `GET /health/ready` e `GET /health` executam uma conexão real com o PostgreSQL.
+- Os logs da API são emitidos em JSON no stdout, adequados para coleta pelo Docker, Loki, Elastic ou outro agregador.
+- Traces e métricas OpenTelemetry cobrem ASP.NET Core, `HttpClient`, runtime e Npgsql. Configure `OTEL_EXPORTER_OTLP_ENDPOINT` para exportar via OTLP; vazio mantém apenas a instrumentação local.
+- `ForwardedHeaders` processa `X-Forwarded-For` e `X-Forwarded-Proto` antes do rate limiter. Cadastre somente proxies confiáveis em `ForwardedHeaders:KnownProxies`; o limite padrão é um proxy.
+
+Emails são gravados em `outbox_messages` na mesma transação da alteração de negócio. Um worker os entrega em segundo plano, registra tentativas e usa backoff em falhas. Eventos de domínio também são persistidos nessa tabela para futuros publicadores de webhooks e integrações externas.
+
+Nas operações autenticadas de escrita, envie um `Idempotency-Key` único. A primeira resposta `2xx` é persistida por 24 horas e requisições repetidas no mesmo usuário, tenant, método e rota recebem a mesma resposta com o header `Idempotency-Replayed: true`. As rotas de autenticação não usam esse middleware porque possuem semântica própria de sessão e rotação de token.
+
+Agregados editáveis possuem uma coluna `Version` tratada como token de concorrência otimista. Uma atualização concorrente retorna HTTP `409 Conflict`. Sessões expiradas há mais de sete dias são removidas na inicialização e, depois, a cada hora.

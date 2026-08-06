@@ -6,8 +6,8 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-ordivo}
-      POSTGRES_USER: ${POSTGRES_USER:-}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ordivo_dev_password}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -30,15 +30,16 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_HTTP_PORTS: 8080
-      ConnectionStrings__OrdivoDatabase: Host=postgres;Port=5432;Database=${POSTGRES_DB:-ordivo};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-}
+      ConnectionStrings__OrdivoDatabase: Host=postgres;Port=5432;Database=${POSTGRES_DB:-ordivo};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-ordivo_dev_password}
       Database__ApplyMigrations: "true"
       Jwt__Issuer: ${JWT_ISSUER:-Ordivo}
       Jwt__Audience: ${JWT_AUDIENCE:-Ordivo.Web}
-      Jwt__Key: ${JWT_KEY:-}
+      Jwt__Key: ${JWT_KEY:-development-only-docker-key-change-before-production-2026}
       Jwt__AccessTokenExpirationMinutes: ${JWT_EXPIRATION_MINUTES:-15}
       RefreshToken__ExpirationDays: ${REFRESH_TOKEN_EXPIRATION_DAYS:-30}
       Cors__AllowedOrigins__0: ${CORS_ORIGIN:-http://localhost:4200}
       DataProtection__KeysPath: /keys
+      OpenTelemetry__OtlpEndpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       Email__Host: ${SMTP_HOST:-}
       Email__Port: ${SMTP_PORT:-587}
       Email__UseSsl: ${SMTP_USE_SSL:-true}
@@ -50,7 +51,7 @@ services:
       AuthCookie__Secure: "false"
       PlatformAdmin__Name: ${PLATFORM_ADMIN_NAME:-Platform Admin}
       PlatformAdmin__Email: ${PLATFORM_ADMIN_EMAIL:-admin@ordivo.local}
-      PlatformAdmin__Password: ${PLATFORM_ADMIN_PASSWORD:-}
+      PlatformAdmin__Password: ${PLATFORM_ADMIN_PASSWORD:-ChangeThisPlatformAdminPassword!2026}
     ports:
       - "${API_PORT:-8080}:8080"
     volumes:

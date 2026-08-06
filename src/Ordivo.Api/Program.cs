@@ -11,8 +11,35 @@ using Ordivo.Infrastructure;
 using Ordivo.Infrastructure.Persistence;
 using Ordivo.Infrastructure.Authentication;
 using Scalar.AspNetCore;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Logging.ClearProviders();
+builder.Logging.AddJsonConsole(options => options.IncludeScopes = true);
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = 1;
+    foreach (var proxy in builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>() ?? [])
+        if (IPAddress.TryParse(proxy, out var address)) options.KnownProxies.Add(address);
+});
+var telemetry = builder.Services.AddOpenTelemetry().ConfigureResource(resource => resource.AddService("Ordivo.Api"));
+var otlpEndpoint = builder.Configuration["OpenTelemetry:OtlpEndpoint"];
+telemetry.WithTracing(tracing =>
+{
+    tracing.AddAspNetCoreInstrumentation().AddHttpClientInstrumentation().AddSource("Npgsql");
+    if (Uri.TryCreate(otlpEndpoint, UriKind.Absolute, out var endpoint)) tracing.AddOtlpExporter(options => options.Endpoint = endpoint);
+});
+telemetry.WithMetrics(metrics =>
+{
+    metrics.AddAspNetCoreInstrumentation().AddHttpClientInstrumentation().AddRuntimeInstrumentation();
+    if (Uri.TryCreate(otlpEndpoint, UriKind.Absolute, out var endpoint)) metrics.AddOtlpExporter(options => options.Endpoint = endpoint);
+});
 var dataProtectionPath = builder.Configuration.GetValue("DataProtection:KeysPath", ".keys");
 Directory.CreateDirectory(dataProtectionPath);
 builder.Services.AddDataProtection()
@@ -32,6 +59,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 var app = builder.Build();
 
 app.UseExceptionHandler();
+app.UseForwardedHeaders();
 
 if (app.Configuration.GetValue<bool>("Database:ApplyMigrations"))
 {
@@ -48,6 +76,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
 app.UseApiCsrfProtection();
+app.UseMiddleware<IdempotencyMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
@@ -55,7 +84,9 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
-app.MapGet("/health", () => Results.Ok(new { status = "healthy" })).WithTags("Health");
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
+app.MapHealthChecks("/health");
 app.MapCarter();
 app.Run();
 

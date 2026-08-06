@@ -47,8 +47,6 @@ public sealed class AuthSession : AggregateRoot<Guid>
     public DateTimeOffset? RevokedAt { get; private set; }
     public Guid? ReplacedBySessionId { get; private set; }
     public Guid FamilyId { get; private set; }
-    public Guid Version { get; private set; }
-
     public bool IsActive(DateTimeOffset now) => RevokedAt is null && ExpiresAt > now;
 
     public void Rotate(Guid replacementSessionId, DateTimeOffset now)

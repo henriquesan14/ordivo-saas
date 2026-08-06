@@ -39,6 +39,7 @@ internal sealed class AuditableEntityInterceptor(TimeProvider timeProvider, IUse
                 entry.Property(nameof(IAuditableEntity.UpdatedAt)).CurrentValue = null;
                 entry.Property(nameof(IAuditableEntity.CreatedByName)).CurrentValue = userName;
                 entry.Property(nameof(IAuditableEntity.UpdatedByName)).CurrentValue = null;
+                entry.Property("Version").CurrentValue = Guid.NewGuid();
             }
             else if (entry.State == EntityState.Modified || entry.HasChangedOwnedEntities())
             {
@@ -46,6 +47,7 @@ internal sealed class AuditableEntityInterceptor(TimeProvider timeProvider, IUse
                 entry.Property(nameof(IAuditableEntity.CreatedByName)).IsModified = false;
                 entry.Property(nameof(IAuditableEntity.UpdatedAt)).CurrentValue = now;
                 entry.Property(nameof(IAuditableEntity.UpdatedByName)).CurrentValue = userName;
+                entry.Property("Version").CurrentValue = Guid.NewGuid();
             }
         }
     }

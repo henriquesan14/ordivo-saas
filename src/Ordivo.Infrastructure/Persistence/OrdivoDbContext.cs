@@ -20,15 +20,23 @@ public sealed class OrdivoDbContext(DbContextOptions<OrdivoDbContext> options, I
     public DbSet<PlatformUser> PlatformUsers => Set<PlatformUser>();
     public DbSet<AuthSession> AuthSessions => Set<AuthSession>();
     public DbSet<IdentityToken> IdentityTokens => Set<IdentityToken>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<IdempotencyRecord> IdempotencyRecords => Set<IdempotencyRecord>();
     public Guid CurrentTenantId => userContext.IsAuthenticated ? userContext.TenantId : Guid.Empty;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(OrdivoDbContext).Assembly);
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes().Where(type =>
+                     type.ClrType.BaseType is not null && IsAggregate(type.ClrType)))
+            modelBuilder.Entity(entityType.ClrType).Property<Guid>("Version").IsConcurrencyToken();
         modelBuilder.Entity<Customer>().HasQueryFilter(customer => customer.TenantId == CurrentTenantId);
         modelBuilder.Entity<ServiceOrder>().HasQueryFilter(order => order.TenantId == CurrentTenantId);
         modelBuilder.Entity<User>().HasQueryFilter(user => user.TenantId == CurrentTenantId);
         modelBuilder.Entity<Tenant>().HasQueryFilter(tenant => tenant.Id == CurrentTenantId);
     }
+
+    private static bool IsAggregate(Type type) =>
+        type != typeof(object) && (type.BaseType?.IsGenericType == true && type.BaseType.GetGenericTypeDefinition() == typeof(AggregateRoot<>) || IsAggregate(type.BaseType!));
 
 }
