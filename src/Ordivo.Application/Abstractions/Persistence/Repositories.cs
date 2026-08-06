@@ -49,9 +49,19 @@ public interface IAuthSessionRepository
     Task<AuthSession?> GetByIdAsync(Guid id, CancellationToken ct);
     Task<IReadOnlyCollection<AuthSession>> ListByUserAsync(Guid userId, AuthSubjectType subjectType, CancellationToken ct);
     Task AddAsync(AuthSession session, CancellationToken ct);
+    Task<IReadOnlyCollection<AuthSession>> ListByFamilyAsync(Guid familyId, CancellationToken ct);
+    Task<IReadOnlyCollection<AuthSession>> ListActiveByUserAsync(Guid userId, AuthSubjectType subjectType, CancellationToken ct);
+    Task<IReadOnlyCollection<AuthSession>> ListActiveByTenantAsync(Guid tenantId, CancellationToken ct);
+}
+public interface IIdentityTokenRepository
+{
+    Task<IdentityToken?> GetByHashAsync(string tokenHash, IdentityTokenType type, CancellationToken ct);
+    Task AddAsync(IdentityToken token, CancellationToken ct);
+    Task ConsumeActiveAsync(Guid userId, IdentityTokenType type, DateTimeOffset now, CancellationToken ct);
 }
 public interface IPlatformTenantRepository
 {
     Task<IReadOnlyCollection<Tenant>> ListAsync(CancellationToken ct);
     Task<Tenant?> GetAsync(Guid id, CancellationToken ct);
+    Task<Tenant?> GetBySlugAsync(string slug, CancellationToken ct);
 }

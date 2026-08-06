@@ -3,6 +3,7 @@ using Ordivo.Application.Abstractions.Authentication;
 using Ordivo.Application.Abstractions.Persistence;
 using Ordivo.SharedKernel.Messaging;
 using Ordivo.SharedKernel.Results;
+using Ordivo.Domain.Authentication;
 
 namespace Ordivo.Application.Users.ChangeMyPassword;
 
@@ -22,7 +23,9 @@ public sealed class ChangeMyPasswordCommandHandler(
     IUserRepository users,
     IUserContext userContext,
     IPasswordHasher passwordHasher,
-    IUnitOfWork unitOfWork) : ICommandHandler<ChangeMyPasswordCommand, bool>
+    IUnitOfWork unitOfWork,
+    IAuthSessionRepository sessions,
+    TimeProvider timeProvider) : ICommandHandler<ChangeMyPasswordCommand, bool>
 {
     public async Task<Result<bool>> Handle(ChangeMyPasswordCommand command, CancellationToken ct)
     {
@@ -32,6 +35,9 @@ public sealed class ChangeMyPasswordCommandHandler(
             return Result.Failure<bool>(new Error("unauthorized", "Current password is invalid."));
 
         user.ChangePassword(passwordHasher.Hash(command.NewPassword));
+        var now = timeProvider.GetUtcNow();
+        foreach (var session in await sessions.ListActiveByUserAsync(user.Id, AuthSubjectType.TenantUser, ct))
+            session.Revoke(now);
         await unitOfWork.SaveChangesAsync(ct);
         return Result.Success(true);
     }

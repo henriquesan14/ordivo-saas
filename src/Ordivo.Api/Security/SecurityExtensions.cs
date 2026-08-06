@@ -11,6 +11,7 @@ public static class SecurityExtensions
     public const string CorsPolicy = "Frontend";
     public const string AuthenticationRateLimitPolicy = "Authentication";
     public const string RefreshRateLimitPolicy = "Refresh";
+    public const string IdentityRateLimitPolicy = "Identity";
 
     public static IServiceCollection AddApiSecurity(
         this IServiceCollection services,
@@ -38,6 +39,7 @@ public static class SecurityExtensions
         var globalPermitLimit = configuration.GetValue("RateLimiting:GlobalPermitLimit", 120);
         var authPermitLimit = configuration.GetValue("RateLimiting:AuthenticationPermitLimit", 5);
         var refreshPermitLimit = configuration.GetValue("RateLimiting:RefreshPermitLimit", 20);
+        var identityPermitLimit = configuration.GetValue("RateLimiting:IdentityPermitLimit", 10);
         var windowSeconds = configuration.GetValue("RateLimiting:WindowSeconds", 60);
 
         services.AddRateLimiter(options =>
@@ -49,6 +51,8 @@ public static class SecurityExtensions
                 CreatePartition(context, "authentication", authPermitLimit, windowSeconds));
             options.AddPolicy(RefreshRateLimitPolicy, context =>
                 CreatePartition(context, "refresh", refreshPermitLimit, windowSeconds));
+            options.AddPolicy(IdentityRateLimitPolicy, context =>
+                CreatePartition(context, "identity", identityPermitLimit, windowSeconds));
             options.OnRejected = async (context, cancellationToken) =>
             {
                 var retryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var value)

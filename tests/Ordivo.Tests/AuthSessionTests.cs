@@ -33,4 +33,16 @@ public sealed class AuthSessionTests
         Assert.Throws<ArgumentException>(() => AuthSession.Create(
             Guid.NewGuid(), null, AuthSubjectType.TenantUser, "hash", DateTimeOffset.UtcNow.AddDays(1)));
     }
+
+    [Fact]
+    public void Replacement_preserves_session_family()
+    {
+        var current = AuthSession.Create(Guid.NewGuid(), Guid.NewGuid(), AuthSubjectType.TenantUser,
+            "first-hash", DateTimeOffset.UtcNow.AddDays(1));
+
+        var replacement = AuthSession.CreateReplacement(current, "second-hash", DateTimeOffset.UtcNow.AddDays(1));
+
+        Assert.Equal(current.FamilyId, replacement.FamilyId);
+        Assert.NotEqual(current.Id, replacement.Id);
+    }
 }

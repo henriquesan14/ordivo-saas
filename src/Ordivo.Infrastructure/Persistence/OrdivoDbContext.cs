@@ -19,6 +19,7 @@ public sealed class OrdivoDbContext(DbContextOptions<OrdivoDbContext> options, I
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<PlatformUser> PlatformUsers => Set<PlatformUser>();
     public DbSet<AuthSession> AuthSessions => Set<AuthSession>();
+    public DbSet<IdentityToken> IdentityTokens => Set<IdentityToken>();
     public Guid CurrentTenantId => userContext.IsAuthenticated ? userContext.TenantId : Guid.Empty;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

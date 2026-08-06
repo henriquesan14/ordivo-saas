@@ -22,6 +22,7 @@ public sealed class Tenant : AggregateRoot<Guid>
         ? throw new ArgumentException("Tenant name is required.", nameof(name))
         : name.Trim();
     public void Deactivate() => IsActive = false;
+    public void Activate() => IsActive = true;
 
     private static string GenerateSlug(string name, Guid id)
     {

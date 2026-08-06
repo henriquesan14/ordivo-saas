@@ -23,4 +23,20 @@ internal sealed class AuthSessionRepository(OrdivoDbContext dbContext) : IAuthSe
 
     public async Task AddAsync(AuthSession session, CancellationToken ct) =>
         await dbContext.AuthSessions.AddAsync(session, ct);
+
+    public async Task<IReadOnlyCollection<AuthSession>> ListByFamilyAsync(Guid familyId, CancellationToken ct) =>
+        await dbContext.AuthSessions.Where(session => session.FamilyId == familyId).ToListAsync(ct);
+
+    public async Task<IReadOnlyCollection<AuthSession>> ListActiveByUserAsync(
+        Guid userId,
+        AuthSubjectType subjectType,
+        CancellationToken ct) =>
+        await dbContext.AuthSessions
+            .Where(session => session.UserId == userId && session.SubjectType == subjectType && session.RevokedAt == null)
+            .ToListAsync(ct);
+
+    public async Task<IReadOnlyCollection<AuthSession>> ListActiveByTenantAsync(Guid tenantId, CancellationToken ct) =>
+        await dbContext.AuthSessions
+            .Where(session => session.TenantId == tenantId && session.RevokedAt == null)
+            .ToListAsync(ct);
 }

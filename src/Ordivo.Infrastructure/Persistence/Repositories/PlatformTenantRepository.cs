@@ -11,4 +11,7 @@ internal sealed class PlatformTenantRepository(OrdivoDbContext dbContext) : IPla
 
     public Task<Tenant?> GetAsync(Guid id, CancellationToken ct) =>
         dbContext.Tenants.IgnoreQueryFilters().SingleOrDefaultAsync(tenant => tenant.Id == id, ct);
+
+    public Task<Tenant?> GetBySlugAsync(string slug, CancellationToken ct) =>
+        dbContext.Tenants.IgnoreQueryFilters().SingleOrDefaultAsync(tenant => tenant.Slug == slug.Trim().ToLower(), ct);
 }

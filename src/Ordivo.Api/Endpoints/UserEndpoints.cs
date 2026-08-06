@@ -7,6 +7,7 @@ using Ordivo.Application.Users.ChangeUserStatus;
 using Ordivo.Application.Users.CreateUser;
 using Ordivo.Application.Users.GetUser;
 using Ordivo.Application.Users.ListUsers;
+using Ordivo.Application.Users.InviteUser;
 using Ordivo.Domain.Users;
 using Ordivo.SharedKernel.Messaging;
 
@@ -39,6 +40,17 @@ public sealed class UserEndpoints : ICarterModule
             var result = await handler.Handle(command, ct);
             return result.IsSuccess
                 ? Results.Created($"/api/users/{result.Value.Id}", result.Value)
+                : result.ToHttpResult();
+        }).RequireAuthorization("TenantAdmin");
+
+        group.MapPost("/invitations", async (
+            InviteUserCommand command,
+            ICommandHandler<InviteUserCommand, UserDto> handler,
+            CancellationToken ct) =>
+        {
+            var result = await handler.Handle(command, ct);
+            return result.IsSuccess
+                ? Results.Accepted($"/api/users/{result.Value.Id}", result.Value)
                 : result.ToHttpResult();
         }).RequireAuthorization("TenantAdmin");
 

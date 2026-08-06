@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.DataProtection;
 using System.Text.Json.Serialization;
 using Carter;
 using Ordivo.Api.Endpoints;
@@ -12,6 +13,11 @@ using Ordivo.Infrastructure.Authentication;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
+var dataProtectionPath = builder.Configuration.GetValue("DataProtection:KeysPath", ".keys");
+Directory.CreateDirectory(dataProtectionPath);
+builder.Services.AddDataProtection()
+    .SetApplicationName("Ordivo")
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath));
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddJwtAuthentication(builder.Configuration);

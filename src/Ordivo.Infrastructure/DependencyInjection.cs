@@ -36,6 +36,7 @@ public static class DependencyInjection
         services.AddScoped<IPlatformUserRepository, PlatformUserRepository>();
         services.AddScoped<IPlatformTenantRepository, PlatformTenantRepository>();
         services.AddScoped<IAuthSessionRepository, AuthSessionRepository>();
+        services.AddScoped<IIdentityTokenRepository, IdentityTokenRepository>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IGenerateToken, JwtTokenGenerator>();
         services.AddOptions<RefreshTokenOptions>()
@@ -43,6 +44,9 @@ public static class DependencyInjection
             .Validate(options => options.ExpirationDays is >= 1 and <= 365, "Refresh token expiration must be between 1 and 365 days.")
             .ValidateOnStart();
         services.AddScoped<IRefreshTokenGenerator, RefreshTokenGenerator>();
+        services.AddScoped<IIdentityTokenGenerator, IdentityTokenGenerator>();
+        services.AddOptions<EmailOptions>().Bind(configuration.GetSection(EmailOptions.SectionName));
+        services.AddScoped<IIdentityEmailSender, IdentityEmailSender>();
         services.AddScoped<IUserContext, UserContext>();
         services.AddHttpContextAccessor();
         return services;

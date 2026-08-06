@@ -20,6 +20,7 @@ RUN dotnet publish src/Ordivo.Api/Ordivo.Api.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+RUN mkdir -p /keys && chown -R $APP_UID:$APP_UID /keys
 
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080

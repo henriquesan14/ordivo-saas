@@ -9,6 +9,7 @@ using Ordivo.Application.Authentication.Register;
 using Ordivo.Application.Authentication.Refresh;
 using Ordivo.Application.Authentication.Logout;
 using Ordivo.Application.Authentication.Sessions;
+using Ordivo.Application.Authentication.Identity;
 using Ordivo.SharedKernel.Messaging;
 
 namespace Ordivo.Api.Endpoints;
@@ -28,9 +29,12 @@ public sealed class AuthenticationEndpoints : ICarterModule
 
         group.MapPost("/register", async (
             RegisterCommand command,
-            ICommandHandler<RegisterCommand, AuthDto> handler,
-            HttpContext context,
-            CancellationToken ct) => (await handler.Handle(command, ct)).ToAuthCookieResult(context))
+            ICommandHandler<RegisterCommand, RegistrationDto> handler,
+            CancellationToken ct) =>
+        {
+            var result = await handler.Handle(command, ct);
+            return result.IsSuccess ? Results.Accepted(value: result.Value) : result.ToHttpResult();
+        })
             .AllowAnonymous()
             .RequireRateLimiting(SecurityExtensions.AuthenticationRateLimitPolicy);
 
@@ -53,6 +57,41 @@ public sealed class AuthenticationEndpoints : ICarterModule
             return (await handler.Handle(new RefreshSessionCommand(refreshToken), ct)).ToAuthCookieResult(context);
         }).AllowAnonymous()
             .RequireRateLimiting(SecurityExtensions.RefreshRateLimitPolicy);
+
+        group.MapPost("/verify-email", async (
+            VerifyEmailCommand command,
+            ICommandHandler<VerifyEmailCommand, bool> handler,
+            CancellationToken ct) => (await handler.Handle(command, ct)).ToHttpResult())
+            .AllowAnonymous()
+            .RequireRateLimiting(SecurityExtensions.IdentityRateLimitPolicy);
+
+        group.MapPost("/resend-verification", async (
+            ResendVerificationCommand command,
+            ICommandHandler<ResendVerificationCommand, bool> handler,
+            CancellationToken ct) => (await handler.Handle(command, ct)).ToHttpResult())
+            .AllowAnonymous()
+            .RequireRateLimiting(SecurityExtensions.IdentityRateLimitPolicy);
+
+        group.MapPost("/forgot-password", async (
+            ForgotPasswordCommand command,
+            ICommandHandler<ForgotPasswordCommand, bool> handler,
+            CancellationToken ct) => (await handler.Handle(command, ct)).ToHttpResult())
+            .AllowAnonymous()
+            .RequireRateLimiting(SecurityExtensions.IdentityRateLimitPolicy);
+
+        group.MapPost("/reset-password", async (
+            ResetPasswordCommand command,
+            ICommandHandler<ResetPasswordCommand, bool> handler,
+            CancellationToken ct) => (await handler.Handle(command, ct)).ToHttpResult())
+            .AllowAnonymous()
+            .RequireRateLimiting(SecurityExtensions.IdentityRateLimitPolicy);
+
+        group.MapPost("/invitations/accept", async (
+            AcceptInvitationCommand command,
+            ICommandHandler<AcceptInvitationCommand, bool> handler,
+            CancellationToken ct) => (await handler.Handle(command, ct)).ToHttpResult())
+            .AllowAnonymous()
+            .RequireRateLimiting(SecurityExtensions.IdentityRateLimitPolicy);
 
         group.MapPost("/logout", async (
             ICommandHandler<RevokeSessionCommand, bool> handler,

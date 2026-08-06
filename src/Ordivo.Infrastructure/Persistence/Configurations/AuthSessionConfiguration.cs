@@ -16,11 +16,13 @@ internal sealed class AuthSessionConfiguration : IEntityTypeConfiguration<AuthSe
         builder.Property(session => session.TokenHash).HasMaxLength(64).IsRequired();
         builder.Property(session => session.ExpiresAt).IsRequired();
         builder.Property(session => session.Version).IsConcurrencyToken().IsRequired();
+        builder.Property(session => session.FamilyId).IsRequired();
         builder.Property(session => session.CreatedAt).IsRequired();
         builder.Property(session => session.CreatedByName).HasMaxLength(120).IsRequired();
         builder.Property(session => session.UpdatedByName).HasMaxLength(120);
         builder.HasIndex(session => session.TokenHash).IsUnique();
         builder.HasIndex(session => new { session.UserId, session.SubjectType });
+        builder.HasIndex(session => session.FamilyId);
         builder.Ignore(session => session.DomainEvents);
     }
 }

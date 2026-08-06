@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Ordivo.Infrastructure.Authentication;
+using Ordivo.Application.Abstractions.Persistence;
 
 namespace Ordivo.Api.Authentication;
 
@@ -33,6 +34,20 @@ public static class AuthenticationExtensions
                             .GetRequiredService<Microsoft.Extensions.Options.IOptions<AuthCookieOptions>>().Value;
                         context.Token = context.Request.Cookies[cookie.Name];
                         return Task.CompletedTask;
+                    },
+                    OnTokenValidated = async context =>
+                    {
+                        var tenantClaim = context.Principal?.FindFirst("tenant_id")?.Value;
+                        if (tenantClaim is null) return;
+                        if (!Guid.TryParse(tenantClaim, out var tenantId))
+                        {
+                            context.Fail("Invalid tenant.");
+                            return;
+                        }
+
+                        var tenants = context.HttpContext.RequestServices.GetRequiredService<IPlatformTenantRepository>();
+                        var tenant = await tenants.GetAsync(tenantId, context.HttpContext.RequestAborted);
+                        if (tenant is null || !tenant.IsActive) context.Fail("Tenant is suspended.");
                     }
                 };
                 options.TokenValidationParameters = new TokenValidationParameters

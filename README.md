@@ -62,8 +62,11 @@ Jwt__Key
 
 ## Identidade
 
-- `POST /api/auth/register`: cria o primeiro usuário com papel `Owner`, armazena somente o hash da senha e grava o cookie de autenticação.
-- `POST /api/auth/login`: valida email e senha e grava um novo cookie de autenticação.
+- `POST /api/auth/register`: cria o tenant e seu primeiro `Owner`, envia a verificação e retorna `202`; nenhum cookie de autenticação é emitido antes da confirmação do email.
+- `POST /api/auth/verify-email` e `/resend-verification`: confirmam ou reenviam a verificação de email.
+- `POST /api/auth/forgot-password` e `/reset-password`: recuperam a senha sem revelar se o email existe.
+- `POST /api/auth/invitations/accept`: define a senha e ativa um usuário convidado.
+- `POST /api/auth/login`: valida email, senha e email verificado, e grava os cookies de autenticação.
 - `POST /api/auth/refresh`: rotaciona o refresh token e renova o access token.
 - `POST /api/auth/logout`: revoga a sessão no banco e remove os cookies.
 - `GET /api/auth/sessions`: lista as sessões do usuário autenticado sem expor tokens ou hashes.
@@ -74,7 +77,7 @@ Jwt__Key
 
 O frontend não recebe o token no JSON nem precisa manipulá-lo. O navegador envia o cookie `HttpOnly` automaticamente nas próximas requisições. Requisições cross-origin devem incluir credenciais (`credentials: "include"` no `fetch`).
 
-O access token expira em 15 minutos e fica no cookie `ordivo.access_token`. O refresh token expira em 30 dias e fica no cookie `ordivo.refresh_token`. Ambos são `HttpOnly`; em produção também são `Secure`. Refresh tokens são aleatórios, rotacionados a cada uso e persistidos somente como hash SHA-256 na tabela `auth_sessions`. O PlatformAdmin renova sua sessão em `POST /api/platform/auth/refresh`.
+O access token expira em 15 minutos e fica no cookie `ordivo.access_token`. O refresh token expira em 30 dias e fica no cookie `ordivo.refresh_token`. Ambos são `HttpOnly`; em produção também são `Secure`. Refresh tokens são aleatórios, rotacionados a cada uso e persistidos somente como hash SHA-256 na tabela `auth_sessions`. A reutilização de um token rotacionado revoga toda a família. Troca ou recuperação de senha e desativação do usuário revogam todas as sessões ativas. O PlatformAdmin renova sua sessão em `POST /api/platform/auth/refresh`.
 
 ## Segurança HTTP
 
@@ -120,6 +123,7 @@ O módulo `/api/users` é isolado pelo `TenantId` autenticado:
 - `GET /api/users`: lista os usuários do tenant.
 - `GET /api/users/{id}`: consulta um usuário do tenant.
 - `POST /api/users`: cria usuário; exige `Owner` ou `Admin`.
+- `POST /api/users/invitations`: cria um usuário inativo e envia um convite; exige `Owner` ou `Admin`.
 - `PATCH /api/users/{id}/role`: altera papel; exige `Owner`.
 - `PATCH /api/users/{id}/status`: ativa ou desativa; exige `Owner` ou `Admin`.
 - `PUT /api/users/me/password`: troca a própria senha após validar a senha atual.
@@ -142,7 +146,9 @@ Copy-Item .env.example .env
 docker compose up --build
 ```
 
-A API ficará em `http://localhost:8080` e o PostgreSQL em `localhost:5432`. O volume `postgres-data` preserva os dados entre reinicializações.
+A API ficará em `http://localhost:8080` e o PostgreSQL em `localhost:5432`. O volume `postgres-data` preserva os dados e `data-protection-keys` preserva as chaves criptográficas usadas pelo antiforgery entre reinicializações.
+
+Configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL` e `FRONTEND_BASE_URL` para entrega real de emails. Sem `SMTP_HOST`, os links de verificação, recuperação e convite são registrados no log da API para desenvolvimento local.
 
 Em desenvolvimento, a documentação interativa Scalar fica em `http://localhost:8080/scalar/v1` e o documento OpenAPI em `http://localhost:8080/openapi/v1.json`.
 
@@ -166,5 +172,12 @@ Em desenvolvimento, `appsettings.Development.json` contém uma credencial conhec
 
 - `POST /api/platform/auth/login`: login de usuário da plataforma.
 - `GET /api/platform/tenants`: lista tenants usando a policy `PlatformAdmin`.
+- `POST /api/platform/tenants`: cria um tenant e seu primeiro Owner.
+- `GET /api/platform/tenants/{id}`: consulta um tenant por identificador.
+- `GET /api/platform/tenants/by-slug/{slug}`: consulta um tenant pelo slug.
+- `PUT /api/platform/tenants/{id}`: atualiza o nome do tenant.
+- `PATCH /api/platform/tenants/{id}/status`: ativa ou suspende o tenant.
+
+Ao suspender um tenant, todas as suas sessões ativas são revogadas. Login, refresh token, tokens JWT já emitidos e fluxos de identidade são bloqueados enquanto o tenant permanecer inativo. A reativação permite novos logins, mas não restaura sessões revogadas.
 
 Não existe registro público de administrador global. O bypass de filtros ocorre somente no `IPlatformTenantRepository`; repositórios normais continuam tenant-scoped.

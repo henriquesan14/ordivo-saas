@@ -49,4 +49,16 @@ public sealed class UserTests
 
         Assert.Equal("new-hash", user.PasswordHash);
     }
+
+    [Fact]
+    public void VerifyEmail_marks_email_as_verified()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var user = User.Create(Guid.NewGuid(), "Rico", "rico@example.com", "hash");
+
+        user.VerifyEmail(now);
+
+        Assert.True(user.IsEmailVerified);
+        Assert.Equal(now, user.EmailVerifiedAt);
+    }
 }

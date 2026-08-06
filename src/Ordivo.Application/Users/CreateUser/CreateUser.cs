@@ -24,7 +24,8 @@ public sealed class CreateUserCommandHandler(
     IUserRepository users,
     IPasswordHasher passwordHasher,
     IUserContext userContext,
-    IUnitOfWork unitOfWork) : ICommandHandler<CreateUserCommand, UserDto>
+    IUnitOfWork unitOfWork,
+    TimeProvider timeProvider) : ICommandHandler<CreateUserCommand, UserDto>
 {
     public async Task<Result<UserDto>> Handle(CreateUserCommand command, CancellationToken ct)
     {
@@ -36,6 +37,7 @@ public sealed class CreateUserCommandHandler(
             return Result.Failure<UserDto>(Error.Conflict("A user with this email already exists."));
 
         var user = User.Create(userContext.TenantId, command.Name, email, passwordHasher.Hash(command.Password), command.Role);
+        user.VerifyEmail(timeProvider.GetUtcNow());
         await users.AddAsync(user, ct);
         await unitOfWork.SaveChangesAsync(ct);
         return Result.Success(user.ToDto());

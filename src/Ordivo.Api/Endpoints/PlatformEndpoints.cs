@@ -8,6 +8,7 @@ using Ordivo.Application.Platform.Authentication.Refresh;
 using Ordivo.Application.Platform.Tenants;
 using Ordivo.Application.Platform.Tenants.ListTenants;
 using Ordivo.Application.Platform.Tenants.CreateTenant;
+using Ordivo.Application.Platform.Tenants.ManageTenant;
 using Ordivo.SharedKernel.Messaging;
 
 namespace Ordivo.Api.Endpoints;
@@ -45,6 +46,20 @@ public sealed class PlatformEndpoints : ICarterModule
             .WithTags("Platform")
             .RequireAuthorization("PlatformAdmin");
 
+        app.MapGet("/api/platform/tenants/{id:guid}", async (
+            Guid id,
+            IQueryHandler<GetPlatformTenantByIdQuery, PlatformTenantDto> handler,
+            CancellationToken ct) => (await handler.Handle(new GetPlatformTenantByIdQuery(id), ct)).ToHttpResult())
+            .WithTags("Platform")
+            .RequireAuthorization("PlatformAdmin");
+
+        app.MapGet("/api/platform/tenants/by-slug/{slug}", async (
+            string slug,
+            IQueryHandler<GetPlatformTenantBySlugQuery, PlatformTenantDto> handler,
+            CancellationToken ct) => (await handler.Handle(new GetPlatformTenantBySlugQuery(slug), ct)).ToHttpResult())
+            .WithTags("Platform")
+            .RequireAuthorization("PlatformAdmin");
+
         app.MapPost("/api/platform/tenants", async (
             CreatePlatformTenantCommand command,
             ICommandHandler<CreatePlatformTenantCommand, CreatePlatformTenantDto> handler,
@@ -57,5 +72,26 @@ public sealed class PlatformEndpoints : ICarterModule
         })
             .WithTags("Platform")
             .RequireAuthorization("PlatformAdmin");
+
+        app.MapPut("/api/platform/tenants/{id:guid}", async (
+            Guid id,
+            UpdatePlatformTenantRequest request,
+            ICommandHandler<UpdatePlatformTenantCommand, PlatformTenantDto> handler,
+            CancellationToken ct) =>
+            (await handler.Handle(new UpdatePlatformTenantCommand(id, request.Name), ct)).ToHttpResult())
+            .WithTags("Platform")
+            .RequireAuthorization("PlatformAdmin");
+
+        app.MapPatch("/api/platform/tenants/{id:guid}/status", async (
+            Guid id,
+            ChangePlatformTenantStatusRequest request,
+            ICommandHandler<ChangePlatformTenantStatusCommand, PlatformTenantDto> handler,
+            CancellationToken ct) =>
+            (await handler.Handle(new ChangePlatformTenantStatusCommand(id, request.IsActive), ct)).ToHttpResult())
+            .WithTags("Platform")
+            .RequireAuthorization("PlatformAdmin");
     }
+
+    private sealed record UpdatePlatformTenantRequest(string Name);
+    private sealed record ChangePlatformTenantStatusRequest(bool IsActive);
 }

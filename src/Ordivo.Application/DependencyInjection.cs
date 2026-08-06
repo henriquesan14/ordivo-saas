@@ -8,6 +8,7 @@ using Ordivo.Application.Authentication.Register;
 using Ordivo.Application.Authentication.Refresh;
 using Ordivo.Application.Authentication.Logout;
 using Ordivo.Application.Authentication.Sessions;
+using Ordivo.Application.Authentication.Identity;
 using Ordivo.Application.Customers.CreateCustomer;
 using Ordivo.Application.Customers.GetCustomer;
 using Ordivo.Application.Customers.ListCustomers;
@@ -25,6 +26,7 @@ using Ordivo.Application.Platform.Authentication.Refresh;
 using Ordivo.Application.Platform.Tenants;
 using Ordivo.Application.Platform.Tenants.ListTenants;
 using Ordivo.Application.Platform.Tenants.CreateTenant;
+using Ordivo.Application.Platform.Tenants.ManageTenant;
 using Ordivo.Application.Users;
 using Ordivo.Application.Users.CreateUser;
 using Ordivo.Application.Users.ListUsers;
@@ -32,6 +34,7 @@ using Ordivo.Application.Users.GetUser;
 using Ordivo.Application.Users.ChangeUserRole;
 using Ordivo.Application.Users.ChangeUserStatus;
 using Ordivo.Application.Users.ChangeMyPassword;
+using Ordivo.Application.Users.InviteUser;
 using Ordivo.SharedKernel.Messaging;
 namespace Ordivo.Application;
 public static class DependencyInjection
@@ -40,7 +43,12 @@ public static class DependencyInjection
     {
         services.AddValidatorsFromAssemblyContaining<RegisterCommandValidator>(ServiceLifetime.Scoped);
 
-        services.AddCommandHandler<RegisterCommand, AuthDto, RegisterCommandHandler>();
+        services.AddCommandHandler<RegisterCommand, RegistrationDto, RegisterCommandHandler>();
+        services.AddCommandHandler<VerifyEmailCommand, bool, VerifyEmailCommandHandler>();
+        services.AddCommandHandler<ResendVerificationCommand, bool, ResendVerificationCommandHandler>();
+        services.AddCommandHandler<ForgotPasswordCommand, bool, ForgotPasswordCommandHandler>();
+        services.AddCommandHandler<ResetPasswordCommand, bool, ResetPasswordCommandHandler>();
+        services.AddCommandHandler<AcceptInvitationCommand, bool, AcceptInvitationCommandHandler>();
         services.AddCommandHandler<LoginCommand, AuthDto, LoginCommandHandler>();
         services.AddCommandHandler<RefreshSessionCommand, AuthDto, RefreshSessionCommandHandler>();
         services.AddCommandHandler<RevokeSessionCommand, bool, RevokeSessionCommandHandler>();
@@ -48,6 +56,8 @@ public static class DependencyInjection
         services.AddCommandHandler<PlatformLoginCommand, PlatformAuthDto, PlatformLoginCommandHandler>();
         services.AddCommandHandler<RefreshPlatformSessionCommand, PlatformAuthDto, RefreshPlatformSessionCommandHandler>();
         services.AddCommandHandler<CreatePlatformTenantCommand, CreatePlatformTenantDto, CreatePlatformTenantCommandHandler>();
+        services.AddCommandHandler<UpdatePlatformTenantCommand, PlatformTenantDto, UpdatePlatformTenantCommandHandler>();
+        services.AddCommandHandler<ChangePlatformTenantStatusCommand, PlatformTenantDto, ChangePlatformTenantStatusCommandHandler>();
         services.AddCommandHandler<UpdateTenantCommand, TenantDto, UpdateTenantCommandHandler>();
         services.AddCommandHandler<CreateCustomerCommand, CustomerDto, CreateCustomerCommandHandler>();
         services.AddCommandHandler<CreateServiceOrderCommand, ServiceOrderDto, CreateServiceOrderCommandHandler>();
@@ -56,8 +66,11 @@ public static class DependencyInjection
         services.AddCommandHandler<ChangeUserRoleCommand, UserDto, ChangeUserRoleCommandHandler>();
         services.AddCommandHandler<ChangeUserStatusCommand, UserDto, ChangeUserStatusCommandHandler>();
         services.AddCommandHandler<ChangeMyPasswordCommand, bool, ChangeMyPasswordCommandHandler>();
+        services.AddCommandHandler<InviteUserCommand, UserDto, InviteUserCommandHandler>();
 
         services.AddScoped<IQueryHandler<ListPlatformTenantsQuery, IReadOnlyCollection<PlatformTenantDto>>, ListPlatformTenantsQueryHandler>();
+        services.AddScoped<IQueryHandler<GetPlatformTenantByIdQuery, PlatformTenantDto>, GetPlatformTenantByIdQueryHandler>();
+        services.AddScoped<IQueryHandler<GetPlatformTenantBySlugQuery, PlatformTenantDto>, GetPlatformTenantBySlugQueryHandler>();
         services.AddScoped<IQueryHandler<ListAuthSessionsQuery, IReadOnlyCollection<AuthSessionDto>>, ListAuthSessionsQueryHandler>();
         services.AddScoped<IQueryHandler<GetCurrentTenantQuery, TenantDto>, GetCurrentTenantQueryHandler>();
         services.AddScoped<IQueryHandler<GetCustomerQuery, CustomerDto>, GetCustomerQueryHandler>();

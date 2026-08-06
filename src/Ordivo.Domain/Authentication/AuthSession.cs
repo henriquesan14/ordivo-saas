@@ -27,8 +27,16 @@ public sealed class AuthSession : AggregateRoot<Guid>
             SubjectType = subjectType,
             TokenHash = tokenHash,
             ExpiresAt = expiresAt,
+            FamilyId = Guid.NewGuid(),
             Version = Guid.NewGuid()
         };
+    }
+
+    public static AuthSession CreateReplacement(AuthSession current, string tokenHash, DateTimeOffset expiresAt)
+    {
+        var replacement = Create(current.UserId, current.TenantId, current.SubjectType, tokenHash, expiresAt);
+        replacement.FamilyId = current.FamilyId;
+        return replacement;
     }
 
     public Guid UserId { get; private set; }
@@ -38,6 +46,7 @@ public sealed class AuthSession : AggregateRoot<Guid>
     public DateTimeOffset ExpiresAt { get; private set; }
     public DateTimeOffset? RevokedAt { get; private set; }
     public Guid? ReplacedBySessionId { get; private set; }
+    public Guid FamilyId { get; private set; }
     public Guid Version { get; private set; }
 
     public bool IsActive(DateTimeOffset now) => RevokedAt is null && ExpiresAt > now;

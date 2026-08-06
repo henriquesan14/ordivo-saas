@@ -25,6 +25,21 @@ public interface IRefreshTokenGenerator
 
 public sealed record RefreshToken(string Token, string Hash, DateTimeOffset ExpiresAt);
 
+public interface IIdentityTokenGenerator
+{
+    GeneratedIdentityToken Generate(TimeSpan lifetime);
+    string Hash(string token);
+}
+
+public sealed record GeneratedIdentityToken(string Token, string Hash, DateTimeOffset ExpiresAt);
+
+public interface IIdentityEmailSender
+{
+    Task SendEmailVerificationAsync(string email, string name, string token, CancellationToken ct);
+    Task SendPasswordResetAsync(string email, string name, string token, CancellationToken ct);
+    Task SendUserInvitationAsync(string email, string name, string token, CancellationToken ct);
+}
+
 public interface IUserContext
 {
     bool IsAuthenticated { get; }

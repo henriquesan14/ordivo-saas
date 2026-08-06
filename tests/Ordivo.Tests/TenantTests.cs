@@ -27,6 +27,18 @@ public sealed class TenantTests
     }
 
     [Fact]
+    public void Tenant_can_be_suspended_and_reactivated()
+    {
+        var tenant = Tenant.Create("Tenant status");
+
+        tenant.Deactivate();
+        Assert.False(tenant.IsActive);
+
+        tenant.Activate();
+        Assert.True(tenant.IsActive);
+    }
+
+    [Fact]
     public void Create_normalizes_accents_and_generates_unique_slugs()
     {
         var first = Tenant.Create("Assistência Técnica São José");

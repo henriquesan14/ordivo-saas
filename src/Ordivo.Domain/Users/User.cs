@@ -34,6 +34,8 @@ public sealed class User : AggregateRoot<Guid>, ITenantEntity
     public string PasswordHash { get; private set; } = string.Empty;
     public UserRole Role { get; private set; }
     public bool IsActive { get; private set; }
+    public DateTimeOffset? EmailVerifiedAt { get; private set; }
+    public bool IsEmailVerified => EmailVerifiedAt.HasValue;
 
     public void ChangePassword(string passwordHash) =>
         PasswordHash = string.IsNullOrWhiteSpace(passwordHash)
@@ -41,6 +43,7 @@ public sealed class User : AggregateRoot<Guid>, ITenantEntity
             : passwordHash;
 
     public void ChangeRole(UserRole role) => Role = role;
+    public void VerifyEmail(DateTimeOffset now) => EmailVerifiedAt ??= now;
     public void Activate() => IsActive = true;
     public void Deactivate() => IsActive = false;
     public static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
