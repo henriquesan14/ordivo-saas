@@ -356,7 +356,7 @@ export class PlatformShellComponent {
   initials = () =>
     this.auth
       .user()
-      ?.name.split(' ')
+      ?.name?.split(' ')
       .map((x) => x[0])
       .slice(0, 2)
       .join('')

@@ -73,6 +73,8 @@ public static class DependencyInjection
         services.AddCommandHandler<UpdateServiceOrderCommand, ServiceOrderDto, UpdateServiceOrderCommandHandler>();
         services.AddCommandHandler<AddServiceOrderCommentCommand, ServiceOrderDto, AddServiceOrderCommentCommandHandler>();
         services.AddCommandHandler<AddServiceOrderAttachmentCommand, ServiceOrderDto, AddServiceOrderAttachmentCommandHandler>();
+        services.AddCommandHandler<DeleteServiceOrderAttachmentCommand, ServiceOrderDto, DeleteServiceOrderAttachmentCommandHandler>();
+        services.AddScoped<IQueryHandler<DownloadServiceOrderAttachmentQuery, AttachmentDownloadDto>, DownloadServiceOrderAttachmentQueryHandler>();
         services.AddCommandHandler<CreateUserCommand, UserDto, CreateUserCommandHandler>();
         services.AddCommandHandler<ChangeUserRoleCommand, UserDto, ChangeUserRoleCommandHandler>();
         services.AddCommandHandler<ChangeUserStatusCommand, UserDto, ChangeUserStatusCommandHandler>();

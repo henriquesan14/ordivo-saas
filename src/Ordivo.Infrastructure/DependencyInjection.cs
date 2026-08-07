@@ -13,6 +13,10 @@ using Ordivo.Infrastructure.Health;
 using Ordivo.Infrastructure.BackgroundJobs;
 using Ordivo.Infrastructure.Payments;
 using Ordivo.Application.Abstractions.Payments;
+using Amazon.S3;
+using Amazon.Runtime;
+using Ordivo.Application.Abstractions.Storage;
+using Ordivo.Infrastructure.Storage;
 
 namespace Ordivo.Infrastructure;
 
@@ -44,6 +48,15 @@ public static class DependencyInjection
         services.AddScoped<IAuthSessionRepository, AuthSessionRepository>();
         services.AddScoped<IIdentityTokenRepository, IdentityTokenRepository>();
         services.AddScoped<ICommercialRepository, CommercialRepository>();
+        services.AddOptions<S3Options>().Bind(configuration.GetSection(S3Options.SectionName)).Validate(x => !string.IsNullOrWhiteSpace(x.Bucket), "S3 bucket is required.").ValidateOnStart();
+        services.AddSingleton<IAmazonS3>(provider =>
+        {
+            var options = provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<S3Options>>().Value;
+            var config = new AmazonS3Config { RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(options.Region), ForcePathStyle = options.ForcePathStyle };
+            if (!string.IsNullOrWhiteSpace(options.ServiceUrl)) config.ServiceURL = options.ServiceUrl;
+            return new AmazonS3Client(new BasicAWSCredentials(options.AccessKey, options.SecretKey), config);
+        });
+        services.AddScoped<IFileStorage, S3FileStorage>();
         services.AddScoped<IImpersonationRepository, ImpersonationRepository>();
         services.AddOptions<PaymentOptions>().Bind(configuration.GetSection(PaymentOptions.SectionName));
         services.AddHttpClient<IPaymentGateway, HttpPaymentGateway>();

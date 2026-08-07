@@ -300,7 +300,7 @@ export class ShellComponent {
   initials = () =>
     this.auth
       .user()
-      ?.name.split(' ')
+      ?.name?.split(' ')
       .slice(0, 2)
       .map((x) => x[0])
       .join('')

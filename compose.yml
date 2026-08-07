@@ -30,6 +30,24 @@ services:
       retries: 10
       start_period: 10s
 
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-ordivo}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-ordivo-local-secret}
+    ports:
+      - "${S3_PORT:-9000}:9000"
+      - "${S3_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   api:
     build:
       context: .
@@ -37,6 +55,8 @@ services:
     restart: unless-stopped
     depends_on:
       postgres:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
@@ -63,6 +83,12 @@ services:
       Email__FromName: ${SMTP_FROM_NAME:-Ordivo}
       Email__FrontendBaseUrl: ${FRONTEND_BASE_URL:-http://localhost:4200}
       AuthCookie__Secure: "false"
+      S3__ServiceUrl: http://minio:9000
+      S3__Region: ${S3_REGION:-us-east-1}
+      S3__Bucket: ${S3_BUCKET:-ordivo-attachments}
+      S3__AccessKey: ${S3_ACCESS_KEY:-ordivo}
+      S3__SecretKey: ${S3_SECRET_KEY:-ordivo-local-secret}
+      S3__ForcePathStyle: "true"
       PlatformAdmin__Name: ${PLATFORM_ADMIN_NAME:-Platform Admin}
       PlatformAdmin__Email: ${PLATFORM_ADMIN_EMAIL:-admin@ordivo.local}
       PlatformAdmin__Password: ${PLATFORM_ADMIN_PASSWORD:-ChangeThisPlatformAdminPassword!2026}
@@ -74,3 +100,4 @@ services:
 volumes:
   postgres-data:
   data-protection-keys:
+  minio-data:

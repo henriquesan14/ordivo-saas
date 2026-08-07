@@ -1,6 +1,6 @@
-import { HttpClient, HttpContextToken, HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
+import { HttpClient, HttpContextToken, HttpErrorResponse, HttpInterceptorFn, HttpRequest, HttpResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { catchError, Observable, shareReplay, switchMap, throwError } from 'rxjs';
+import { catchError, filter, finalize, map, Observable, shareReplay, switchMap, tap, throwError } from 'rxjs';
 import { Customer, Paged, ServiceOrder, Subscription, Tenant, User } from './models';
 
 const SKIP_CSRF = new HttpContextToken(() => false);
@@ -20,15 +20,44 @@ export class Api {
 }
 
 let csrf$: Observable<{token:string}> | undefined;
+let refresh$: Observable<unknown> | undefined;
 export function resetCsrfToken(){ csrf$ = undefined; }
 export const apiInterceptor: HttpInterceptorFn = (request, next) => {
   const http = inject(HttpClient); const unsafe = !['GET','HEAD','OPTIONS'].includes(request.method);
-  const send = (token?: string) => next(request.clone({ withCredentials: true, setHeaders: token ? { 'X-CSRF-TOKEN': token } : {} })).pipe(
-    catchError((error: HttpErrorResponse) => { if (error.status === 401 && !request.url.includes('/auth/refresh')) sessionStorage.removeItem('ordivo.user'); return throwError(() => error); }));
+  const send = (token?: string) => {
+    const authenticatedRequest = request.clone({ withCredentials: true, setHeaders: token ? { 'X-CSRF-TOKEN': token } : {} });
+    return next(authenticatedRequest).pipe(catchError((error: HttpErrorResponse) => {
+      if (error.status !== 401 || isAuthenticationRequest(request.url)) return throwError(() => error);
+      const current = readStoredUser();
+      if (!current) return throwError(() => error);
+      const platform = current.mode === 'platform' || current.mode === 'impersonation' || current.role === 'PlatformAdmin';
+      refresh$ ??= http.get<{token:string}>('/api/auth/csrf', { withCredentials: true }).pipe(
+        switchMap(freshCsrf => next(new HttpRequest('POST', platform ? '/api/platform/auth/refresh' : '/api/auth/refresh', {}, { withCredentials: true, headers: authenticatedRequest.headers.set('X-CSRF-TOKEN', freshCsrf.token) }))),
+        filter(event => event instanceof HttpResponse),
+        map(event => (event as HttpResponse<any>).body),
+        tap((user: any) => {
+          const renewed = { ...user, mode: platform ? 'platform' : 'tenant' };
+          sessionStorage.setItem('ordivo.user', JSON.stringify(renewed));
+          if (current.mode === 'impersonation') sessionStorage.removeItem('ordivo.platform-user');
+          resetCsrfToken();
+          window.dispatchEvent(new CustomEvent('ordivo:session-refreshed', { detail: renewed }));
+        }),
+        finalize(() => { refresh$ = undefined; }),
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
+      return refresh$.pipe(
+        switchMap(() => next(authenticatedRequest)),
+        catchError(refreshError => { sessionStorage.removeItem('ordivo.user'); sessionStorage.removeItem('ordivo.platform-user'); window.dispatchEvent(new Event('ordivo:session-expired')); return throwError(() => refreshError); }),
+      );
+    }));
+  };
   if (!unsafe || request.context.get(SKIP_CSRF) || request.url.endsWith('/api/auth/csrf')) return send();
   csrf$ ??= http.get<{token:string}>('/api/auth/csrf', { withCredentials: true }).pipe(shareReplay(1));
   return csrf$.pipe(switchMap(result => send(result.token)), catchError(error => { csrf$ = undefined; return throwError(() => error); }));
 };
+
+function isAuthenticationRequest(url: string) { return url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/logout'); }
+function readStoredUser(): any | null { try { return JSON.parse(sessionStorage.getItem('ordivo.user') ?? 'null'); } catch { return null; } }
 
 export function errorMessage(error: unknown): string {
   if (error instanceof HttpErrorResponse) return error.error?.detail ?? error.error?.error?.description ?? 'Não foi possível concluir a operação.';

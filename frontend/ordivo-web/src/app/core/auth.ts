@@ -14,6 +14,10 @@ export class Auth {
     () => this.user()?.mode === 'platform' || this.user()?.role === 'PlatformAdmin',
   );
   readonly isImpersonating = computed(() => this.user()?.mode === 'impersonation');
+  constructor() {
+    window.addEventListener('ordivo:session-refreshed', (event) => this.user.set((event as CustomEvent<SessionUser>).detail));
+    window.addEventListener('ordivo:session-expired', () => this.clear());
+  }
   login(email: string, password: string) {
     return this.api
       .post<SessionUser>('/api/auth/login', { email, password })
@@ -75,7 +79,12 @@ export class Auth {
   }
   private read(): SessionUser | null {
     try {
-      return JSON.parse(sessionStorage.getItem('ordivo.user') ?? 'null');
+      const stored = JSON.parse(sessionStorage.getItem('ordivo.user') ?? 'null');
+      const user = stored?.body ?? stored;
+      if (!user?.name || !user?.email || !user?.role) return null;
+      user.mode ??= user.role === 'PlatformAdmin' ? 'platform' : 'tenant';
+      if (stored?.body) sessionStorage.setItem('ordivo.user', JSON.stringify(user));
+      return user;
     } catch {
       return null;
     }

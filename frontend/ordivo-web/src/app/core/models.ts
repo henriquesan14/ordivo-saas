@@ -26,12 +26,21 @@ export interface ServiceOrder {
   title: string;
   description: string;
   price: number;
-  status: 'Draft' | 'Open' | 'InProgress' | 'Completed' | 'Canceled';
+  status: 'Open' | 'InProgress' | 'Completed' | 'Cancelled';
   assignedUserId?: string;
   scheduledAt?: string;
   completedAt?: string;
   createdAt: string;
+  updatedAt?: string;
+  createdByName: string;
+  updatedByName?: string;
+  statusHistory: ServiceOrderStatusHistory[];
+  comments: ServiceOrderComment[];
+  attachments: ServiceOrderAttachment[];
 }
+export interface ServiceOrderStatusHistory { id:string; status:ServiceOrder['status']; changedByName:string; note?:string; changedAt:string; }
+export interface ServiceOrderComment { id:string; userId:string; userName:string; text:string; createdAt:string; }
+export interface ServiceOrderAttachment { id:string; userId:string; userName:string; fileName:string; contentType:string; size:number; createdAt:string; }
 export interface User {
   id: string;
   name: string;

@@ -73,6 +73,14 @@ public sealed class ServiceOrder : AggregateRoot<Guid>, ITenantEntity
     public void AddAttachment(Guid userId, string userName, string fileName, string contentType,
         long size, string storageKey, DateTimeOffset now) =>
         _attachments.Add(ServiceOrderAttachment.Create(Id, userId, userName, fileName, contentType, size, storageKey, now));
+
+    public ServiceOrderAttachment? GetAttachment(Guid attachmentId) => _attachments.SingleOrDefault(item => item.Id == attachmentId);
+    public ServiceOrderAttachment? RemoveAttachment(Guid attachmentId)
+    {
+        var attachment = GetAttachment(attachmentId);
+        if (attachment is not null) _attachments.Remove(attachment);
+        return attachment;
+    }
 }
 
 public sealed class ServiceOrderStatusHistory
