@@ -95,17 +95,24 @@ public sealed class CreateCheckoutValidator : AbstractValidator<CreateCheckoutCo
 {
     public CreateCheckoutValidator() { RuleFor(x => x.SuccessUrl).NotEmpty().Must(x => Uri.TryCreate(x, UriKind.Absolute, out _)); RuleFor(x => x.CancelUrl).NotEmpty().Must(x => Uri.TryCreate(x, UriKind.Absolute, out _)); }
 }
-public sealed class CreateCheckoutHandler(ICommercialRepository repository, IPaymentGateway gateway, IUserContext user) : ICommandHandler<CreateCheckoutCommand, CheckoutResult>
+public sealed class CreateCheckoutHandler(ICommercialRepository repository, IPaymentGateway gateway, IUserContext user, TimeProvider clock) : ICommandHandler<CreateCheckoutCommand, CheckoutResult>
 {
     public async Task<Result<CheckoutResult>> Handle(CreateCheckoutCommand c, CancellationToken ct)
     {
         var subscription = await repository.GetSubscriptionAsync(user.TenantId, false, ct); if (subscription is null) return Result.Failure<CheckoutResult>(Error.NotFound("Subscription not found."));
-        var checkout = await gateway.CreateCheckoutAsync(new(user.TenantId, subscription.Id, subscription.PlanId, subscription.ContractPrice, subscription.ContractCurrency, subscription.PlanName, c.SuccessUrl, c.CancelUrl), ct);
+        if (subscription.Status == SubscriptionStatus.Canceled)
+            return Result.Failure<CheckoutResult>(Error.Validation("Canceled subscriptions cannot start checkout."));
+        var now = clock.GetUtcNow();
+        var firstDueDate = subscription.TrialEndsAt is { } trialEnd && trialEnd > now ? trialEnd : now;
+        var cycle = subscription.ContractInterval == BillingInterval.Yearly ? "YEARLY" : "MONTHLY";
+        var checkout = await gateway.CreateCheckoutAsync(new(user.TenantId, subscription.Id, subscription.PlanId,
+            subscription.ContractPrice, subscription.ContractCurrency, subscription.PlanName, cycle, firstDueDate,
+            user.Name, user.Email, c.SuccessUrl, c.CancelUrl), ct);
         return Result.Success(checkout);
     }
 }
 
-public sealed record ProcessPaymentWebhookCommand(string Gateway, string EventId, string Type, Guid TenantId, string? InvoiceId, decimal? Amount, string Currency, DateTimeOffset? DueAt, DateTimeOffset? PeriodEnd) : ICommand<bool>;
+public sealed record ProcessPaymentWebhookCommand(string Gateway, string EventId, string Type, Guid TenantId, string? InvoiceId, decimal? Amount, string Currency, DateTimeOffset? DueAt, DateTimeOffset? PeriodEnd, string? GatewayCustomerId = null, string? GatewaySubscriptionId = null) : ICommand<bool>;
 public sealed class ProcessPaymentWebhookHandler(ICommercialRepository repository, IUnitOfWork uow, TimeProvider clock) : ICommandHandler<ProcessPaymentWebhookCommand, bool>
 {
     public async Task<Result<bool>> Handle(ProcessPaymentWebhookCommand c, CancellationToken ct)
@@ -117,7 +124,7 @@ public sealed class ProcessPaymentWebhookHandler(ICommercialRepository repositor
         if (!string.IsNullOrWhiteSpace(c.InvoiceId)) { invoice = await repository.GetInvoiceByGatewayIdAsync(c.InvoiceId, ct); if (invoice is null && c.Amount.HasValue && c.DueAt.HasValue) { invoice = BillingInvoice.Create(c.TenantId, subscription.Id, c.InvoiceId, c.Amount.Value, c.Currency, c.DueAt.Value); await repository.AddInvoiceAsync(invoice, ct); } }
         switch (c.Type.Trim().ToLowerInvariant())
         {
-            case "invoice.paid": invoice?.MarkPaid(now); subscription.MarkActive(c.PeriodEnd ?? subscription.CurrentPeriodEndsAt, now); break;
+            case "invoice.paid": invoice?.MarkPaid(now); if(c.PeriodEnd.HasValue) subscription.MarkActive(c.PeriodEnd.Value, now); else subscription.MarkActiveForNextPeriod(now); subscription.SetGatewayReferences(c.GatewayCustomerId ?? subscription.GatewayCustomerId, c.GatewaySubscriptionId ?? subscription.GatewaySubscriptionId); break;
             case "invoice.failed": invoice?.MarkFailed(); subscription.MarkPastDue(); break;
             case "subscription.suspended": subscription.Suspend(); break;
             case "subscription.canceled": subscription.Cancel(now); break;

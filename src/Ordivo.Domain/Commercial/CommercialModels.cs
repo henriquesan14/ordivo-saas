@@ -73,6 +73,7 @@ public sealed class Subscription : AggregateRoot<Guid>
     public void ChangePlan(Plan plan, DateTimeOffset now) { ApplyPlanSnapshot(plan); CurrentPeriodStartsAt = now; CurrentPeriodEndsAt = AddPeriod(now, plan.Interval); TrialEndsAt = null; Status = SubscriptionStatus.Active; }
     public void SetGatewayReferences(string? customerId, string? subscriptionId) { GatewayCustomerId = customerId; GatewaySubscriptionId = subscriptionId; }
     public void MarkActive(DateTimeOffset periodEnd, DateTimeOffset now) { Status = SubscriptionStatus.Active; CurrentPeriodStartsAt = now; CurrentPeriodEndsAt = periodEnd; TrialEndsAt = null; }
+    public void MarkActiveForNextPeriod(DateTimeOffset now) => MarkActive(AddPeriod(now, ContractInterval), now);
     public void MarkPastDue() => Status = SubscriptionStatus.PastDue;
     public void Suspend() => Status = SubscriptionStatus.Suspended;
     public void Cancel(DateTimeOffset now) { Status = SubscriptionStatus.Canceled; CanceledAt = now; }

@@ -28,6 +28,8 @@ public sealed class CommercialEndpoints : ICarterModule
     {
         using var reader = new StreamReader(request.Body); var body = await reader.ReadToEndAsync(ct); var secret = configuration["Payments:WebhookSecret"];
         if (string.IsNullOrWhiteSpace(secret)) return Results.Problem("Payment webhook secret is not configured.", statusCode: 503);
+        if (gateway.Equals("asaas", StringComparison.OrdinalIgnoreCase))
+            return await HandleAsaasWebhook(request, body, secret, handler, ct);
         if (!request.Headers.TryGetValue("X-Webhook-Signature", out var supplied)) return Results.Unauthorized();
         var expected = Convert.ToHexString(HMACSHA256.HashData(Encoding.UTF8.GetBytes(secret), Encoding.UTF8.GetBytes(body))).ToLowerInvariant();
         var signature = supplied.ToString().ToLowerInvariant();
@@ -35,6 +37,27 @@ public sealed class CommercialEndpoints : ICarterModule
         var payload = System.Text.Json.JsonSerializer.Deserialize<PaymentWebhookRequest>(body, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
         if (payload is null) return Results.BadRequest();
         return (await handler.Handle(new(gateway.Trim().ToLowerInvariant(), payload.EventId, payload.Type, payload.TenantId, payload.InvoiceId, payload.Amount, payload.Currency ?? "BRL", payload.DueAt, payload.PeriodEnd), ct)).ToHttpResult();
+    }
+    private static async Task<IResult> HandleAsaasWebhook(HttpRequest request, string body, string secret, ICommandHandler<ProcessPaymentWebhookCommand, bool> handler, CancellationToken ct)
+    {
+        if (!request.Headers.TryGetValue("asaas-access-token", out var supplied)) return Results.Unauthorized();
+        var actual = supplied.ToString();
+        if (actual.Length != secret.Length || !CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(actual), Encoding.UTF8.GetBytes(secret))) return Results.Unauthorized();
+        using var document = System.Text.Json.JsonDocument.Parse(body); var root = document.RootElement;
+        var eventId = root.TryGetProperty("id", out var id) ? id.GetString() : null;
+        var eventName = root.TryGetProperty("event", out var eventElement) ? eventElement.GetString() : null;
+        if (string.IsNullOrWhiteSpace(eventId) || string.IsNullOrWhiteSpace(eventName)) return Results.BadRequest();
+        var mappedType = eventName switch { "PAYMENT_RECEIVED" or "PAYMENT_CONFIRMED" => "invoice.paid", "PAYMENT_OVERDUE" or "PAYMENT_CREDIT_CARD_CAPTURE_REFUSED" => "invoice.failed", _ => null };
+        if (mappedType is null) return Results.Ok();
+        if (!root.TryGetProperty("payment", out var payment)) return Results.BadRequest();
+        var reference = payment.TryGetProperty("externalReference", out var external) ? external.GetString() : null;
+        if (!Guid.TryParse(reference, out var tenantId)) return Results.BadRequest(new { error = "Invalid externalReference." });
+        var invoiceId = payment.TryGetProperty("id", out var paymentId) ? paymentId.GetString() : null;
+        decimal? amount = payment.TryGetProperty("value", out var value) && value.TryGetDecimal(out var parsedAmount) ? parsedAmount : null;
+        DateTimeOffset? dueAt = payment.TryGetProperty("dueDate", out var due) && DateTimeOffset.TryParse(due.GetString(), out var parsedDue) ? parsedDue : null;
+        var customerId = payment.TryGetProperty("customer", out var customer) ? customer.GetString() : null;
+        var subscriptionId = payment.TryGetProperty("subscription", out var subscription) ? subscription.GetString() : null;
+        return (await handler.Handle(new("asaas", eventId, mappedType, tenantId, invoiceId, amount, "BRL", dueAt, null, customerId, subscriptionId), ct)).ToHttpResult();
     }
     public sealed record PlanRequest(string Name, string Code, decimal Price, string Currency, BillingInterval Interval, int TrialDays, int MaxUsers, int MaxCustomers, int MaxServiceOrders) { public UpsertPlanCommand ToCommand(Guid? id) => new(id, Name, Code, Price, Currency, Interval, TrialDays, MaxUsers, MaxCustomers, MaxServiceOrders); }
     public sealed record PlanStatusRequest(bool IsActive);

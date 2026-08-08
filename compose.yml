@@ -71,9 +71,9 @@ services:
       Cors__AllowedOrigins__0: ${CORS_ORIGIN:-http://localhost:4200}
       DataProtection__KeysPath: /keys
       OpenTelemetry__OtlpEndpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
-      Payments__WebhookSecret: ${PAYMENTS_WEBHOOK_SECRET:-}
-      Payments__ApiBaseUrl: ${PAYMENTS_API_BASE_URL:-}
-      Payments__ApiKey: ${PAYMENTS_API_KEY:-}
+      Payments__WebhookSecret: ${ASAAS_WEBHOOK_TOKEN:-}
+      Payments__ApiBaseUrl: ${ASAAS_API_BASE_URL:-https://api-sandbox.asaas.com/v3/}
+      Payments__ApiKey: ${ASAAS_API_KEY:-}
       Email__Host: ${SMTP_HOST:-}
       Email__Port: ${SMTP_PORT:-587}
       Email__UseSsl: ${SMTP_USE_SSL:-true}

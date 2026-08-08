@@ -1,6 +1,8 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { Auth } from '../core/auth';
+import { Api } from '../core/api';
+import { Subscription } from '../core/models';
 @Component({
   selector: 'app-shell',
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
@@ -9,7 +11,7 @@ import { Auth } from '../core/auth';
     <aside>
       <a class="brand" routerLink="/app"><span>O</span> Ordivo</a>
       <nav>
-        @for (item of nav; track item.path) {
+        @for (item of visibleNav(); track item.path) {
           <a
             [routerLink]="item.path"
             routerLinkActive="active"
@@ -20,8 +22,8 @@ import { Auth } from '../core/auth';
         }
       </nav>
       <div class="sidebar-bottom">
-        <a routerLink="/app/settings" routerLinkActive="active"><i>⚙</i>Configurações</a
-        ><button (click)="exit()"><i>↗</i>{{ auth.isImpersonating() ? 'Encerrar suporte' : 'Sair' }}</button>
+        @if(auth.canManageTenant()){<a routerLink="/app/settings" routerLinkActive="active"><i>⚙</i>Configurações</a>}
+        <button (click)="exit()"><i>↗</i>{{ auth.isImpersonating() ? 'Encerrar suporte' : 'Sair' }}</button>
       </div>
     </aside>
     <div class="backdrop" (click)="menu.set(false)"></div>
@@ -34,7 +36,7 @@ import { Auth } from '../core/auth';
           <div class="avatar">{{ initials() }}</div>
           <div class="identity">
             <strong>{{ auth.user()?.name }}</strong
-            ><small>{{ auth.user()?.role }}</small>
+            ><small>{{ roleLabel() }}</small>
           </div>
         </div>
       </header>
@@ -53,6 +55,7 @@ import { Auth } from '../core/auth';
           </button>
         </div>
       }
+      @if(trialWarning()){<div class="trial-warning" [class.expired]="trialDays()<=0"><div><b>{{trialDays()>0?'Seu período gratuito termina '+(trialDays()===1?'amanhã':'em '+trialDays()+' dias'):'Seu período gratuito terminou'}}</b><span>{{auth.isOwner()?'Cadastre a forma de pagamento para manter o acesso.':'Peça ao proprietário da conta para regularizar a assinatura.'}}</span></div>@if(auth.isOwner()){<a routerLink="/app/billing">{{trialDays()>0?'Assinar agora':'Regularizar acesso'}} →</a>}</div>}
       <main><router-outlet /></main>
     </section>
   </div>`,
@@ -239,6 +242,7 @@ import { Auth } from '../core/auth';
         font-size: 10px;
         font-weight: 800;
       }
+      .trial-warning{min-height:52px;padding:9px 28px;display:flex;align-items:center;gap:18px;background:#fff5cf;border-bottom:1px solid #eadb9c;color:#705b13}.trial-warning>div{display:grid;margin-right:auto}.trial-warning b{font-size:12px}.trial-warning span{font-size:10px;margin-top:2px}.trial-warning a{padding:7px 11px;border:1px solid #b89522;border-radius:7px;background:#fff9e5;font-size:10px;font-weight:800}.trial-warning.expired{background:#fff0ed;border-color:#edc8c1;color:#973c2f}.trial-warning.expired a{border-color:#c36b5d;background:#fff7f5}
       main {
         padding: 30px;
       }
@@ -288,15 +292,22 @@ import { Auth } from '../core/auth';
 })
 export class ShellComponent {
   auth = inject(Auth);
+  private api = inject(Api);
+  subscription = signal<Subscription|null>(null);
   menu = signal(false);
   ending = signal(false);
   nav = [
-    { path: '/app', label: 'Visão geral', icon: '⌂', exact: true },
-    { path: '/app/orders', label: 'Ordens de serviço', icon: '▣' },
-    { path: '/app/customers', label: 'Clientes', icon: '♙' },
-    { path: '/app/users', label: 'Equipe', icon: '♧' },
-    { path: '/app/billing', label: 'Plano e cobrança', icon: '◇' },
+    { path: '/app', label: 'Visão geral', icon: '⌂', exact: true, access: undefined },
+    { path: '/app/orders', label: 'Ordens de serviço', icon: '▣', access: undefined },
+    { path: '/app/customers', label: 'Clientes', icon: '♙', access: undefined },
+    { path: '/app/users', label: 'Equipe', icon: '♧', access: () => this.auth.isTenantAdmin() },
+    { path: '/app/billing', label: 'Plano e cobrança', icon: '◇', access: () => this.auth.isOwner() },
   ];
+  visibleNav = computed(() => this.nav.filter(item => !item.access || item.access()));
+  roleLabel = () => ({Owner:'Proprietário',Admin:'Administrador',Member:'Membro',PlatformAdmin:'Administrador global'} as Record<string,string>)[this.auth.user()?.role ?? ''] ?? 'Usuário';
+  trialDays = computed(()=>{const end=this.subscription()?.trialEndsAt;if(!end)return 0;return Math.max(0,Math.ceil((new Date(end).getTime()-Date.now())/86400000))});
+  trialWarning = computed(()=>this.subscription()?.status==='Trialing'&&this.trialDays()<=7);
+  constructor(){this.api.subscription().subscribe({next:s=>this.subscription.set(s)})}
   initials = () =>
     this.auth
       .user()

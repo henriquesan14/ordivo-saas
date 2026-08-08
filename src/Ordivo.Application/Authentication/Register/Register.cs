@@ -9,7 +9,7 @@ using Ordivo.SharedKernel.Results;
 
 namespace Ordivo.Application.Authentication.Register;
 
-public sealed record RegisterCommand(string TenantName, string Name, string Email, string Password) : ICommand<RegistrationDto>;
+public sealed record RegisterCommand(Guid PlanId, string TenantName, string Name, string Email, string Password) : ICommand<RegistrationDto>;
 public sealed record RegistrationDto(Guid UserId, Guid TenantId, string Email, bool EmailVerificationRequired);
 
 public sealed class RegisterCommandHandler(
@@ -29,13 +29,16 @@ public sealed class RegisterCommandHandler(
         if (await users.EmailExistsAsync(email, ct))
             return Result.Failure<RegistrationDto>(Error.Conflict("A user with this email already exists."));
 
+        var plan = await commercial.GetPlanAsync(command.PlanId, ct);
+        if (plan is null || !plan.IsActive)
+            return Result.Failure<RegistrationDto>(Error.Validation("The selected plan is not available."));
+
         var tenant = Tenant.Create(command.TenantName);
         var user = User.Create(tenant.Id, command.Name, email, passwordHasher.Hash(command.Password));
         var verificationToken = tokenGenerator.Generate(TimeSpan.FromHours(24));
         await tenants.AddAsync(tenant, ct);
         await users.AddAsync(user, ct);
-        var defaultPlan = (await commercial.ListPlansAsync(true, ct)).FirstOrDefault();
-        if (defaultPlan is not null) await commercial.AddSubscriptionAsync(Subscription.Start(tenant.Id, defaultPlan, clock.GetUtcNow()), ct);
+        await commercial.AddSubscriptionAsync(Subscription.Start(tenant.Id, plan, clock.GetUtcNow()), ct);
         await identityTokens.AddAsync(IdentityToken.Create(
             user.Id, tenant.Id, user.Email, IdentityTokenType.EmailVerification,
             verificationToken.Hash, verificationToken.ExpiresAt), ct);

@@ -14,6 +14,10 @@ export class Auth {
     () => this.user()?.mode === 'platform' || this.user()?.role === 'PlatformAdmin',
   );
   readonly isImpersonating = computed(() => this.user()?.mode === 'impersonation');
+  readonly isOwner = computed(() => this.user()?.role === 'Owner');
+  readonly isTenantAdmin = computed(() => ['Owner', 'Admin'].includes(this.user()?.role ?? ''));
+  readonly canManageUsers = this.isTenantAdmin;
+  readonly canManageTenant = this.isTenantAdmin;
   constructor() {
     window.addEventListener('ordivo:session-refreshed', (event) => this.user.set((event as CustomEvent<SessionUser>).detail));
     window.addEventListener('ordivo:session-expired', () => this.clear());
@@ -113,4 +117,14 @@ export const platformGuard: CanActivateFn = () => {
 export const platformGuestGuard: CanActivateFn = () => {
   const auth = inject(Auth);
   return !auth.isPlatform() || inject(Router).createUrlTree(['/platform']);
+};
+export const tenantAdminGuard: CanActivateFn = () => {
+  const auth = inject(Auth);
+  if (!auth.authenticated() || auth.isPlatform()) return inject(Router).createUrlTree(['/login']);
+  return auth.isTenantAdmin() || inject(Router).createUrlTree(['/app']);
+};
+export const tenantOwnerGuard: CanActivateFn = () => {
+  const auth = inject(Auth);
+  if (!auth.authenticated() || auth.isPlatform()) return inject(Router).createUrlTree(['/login']);
+  return auth.isOwner() || inject(Router).createUrlTree(['/app']);
 };
